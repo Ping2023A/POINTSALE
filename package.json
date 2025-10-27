@@ -1,0 +1,26 @@
+{
+  "name": "pointsale",
+  "version": "1.0.0",
+  "description": "Final Output for ITMC311",
+  "main": "index.js",
+  "scripts": {
+    "server": "cd backend && npm start",
+    "client": "cd frontend && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ping2023A/POINTSALE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ping2023A/POINTSALE/issues"
+  },
+  "homepage": "https://github.com/Ping2023A/POINTSALE#readme",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
