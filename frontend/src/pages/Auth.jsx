@@ -23,6 +23,9 @@ function Auth() {
     } else {
       console.log("Signing up:", { firstName, lastName, email, password });
     }
+
+    // Redirect to POS system after login/signup
+    navigate("/order");
   }
 
   return (
