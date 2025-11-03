@@ -4,6 +4,8 @@ import "./auth.css";
 import logo from "../assets/salespoint-logo.png";
 import googleIcon from "../assets/google-icon.png";
 import facebookIcon from "../assets/facebook-icon.png";
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 function Auth() {
   const navigate = useNavigate();
@@ -16,17 +18,31 @@ function Auth() {
   const [lastName, setLastName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(e) {
+  e.preventDefault();
+
+  try {
     if (isLogin) {
-      console.log("Logging in:", { email, password });
+      // Log in existing user
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Logged in:", userCredential.user);
     } else {
-      console.log("Signing up:", { firstName, lastName, email, password });
+      // Sign up new user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Signed up:", userCredential.user);
+      // Optional: update profile with first/last name
+      await updateProfile(userCredential.user, {
+        displayName: `${firstName} ${lastName}`,
+      });
     }
 
-    // Redirect to POS system after login/signup
+    // Redirect to POS system
     navigate("/order");
+  } catch (error) {
+    console.error("Auth error:", error.message);
+    alert(error.message);
   }
+}
 
   return (
     <div className="auth-container">
