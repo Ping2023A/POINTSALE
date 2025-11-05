@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./order.css";
 import logo from "../assets/salespoint-logo.png";
+import { Link } from "react-router-dom";
 
 function OrderPage() {
   const categories = ["All", "Hot Drinks", "Cold Drinks", "Food", "Snacks"];
@@ -80,11 +81,20 @@ function OrderPage() {
   return (
     <div className="pos-container">
       {/* Left Sidebar */}
-      <div className="sidebar">
-        <div className="nav-icon">🏠</div>
-        <div className="nav-icon">🧾</div>
-        <div className="nav-icon">⚙️</div>
-      </div>
+      <aside className="sidebar">
+        <h2 className="logo">Sales Point</h2>
+        <nav>
+          <ul>
+            <li><Link to="/dashboard">Dashboard</Link></li>
+            <li>Roles</li>
+            <li className="active"><Link to="/inventory">Inventory</Link></li>
+            <li><Link to="/order">Order Entries</Link></li>
+            <li>Audit Logs</li>
+            <li>Shift Board</li>
+            <li>Sign Out</li>
+          </ul>
+        </nav>
+      </aside>
 
       {/* Main POS Area */}
       <div className="left-panel">
