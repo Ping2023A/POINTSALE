@@ -5,7 +5,8 @@ import logo from "../assets/salespoint-logo.png";
 import googleIcon from "../assets/google-icon.png";
 import facebookIcon from "../assets/facebook-icon.png";
 import { auth } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
+
 
 function Auth() {
   const navigate = useNavigate();
@@ -26,16 +27,30 @@ function Auth() {
       // Log in existing user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("Logged in:", userCredential.user);
+
+      if (!userCredential.user.emailVerified) {
+        await sendEmailVerification(userCredential.user);
+        alert("Verification email sent. Please check your inbox.");
+        return;
+      }
+
+      console.log("Logged in:", userCredential.user);
     } else {
       // Sign up new user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log("Signed up:", userCredential.user);
-      // Optional: update profile with first/last name
+     
       await updateProfile(userCredential.user, {
         displayName: `${firstName} ${lastName}`,
       });
-    }
 
+      
+    await sendEmailVerification(userCredential.user);
+    alert("Verification email sent. Please check your inbox to activate your account.");
+    navigate("/login");
+    return;
+    }
+    
     // Redirect to POS system
     navigate("/order");
   } catch (error) {
