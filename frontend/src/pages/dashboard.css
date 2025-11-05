@@ -1,0 +1,136 @@
+/* Layout */
+.dashboard {
+  display: flex;
+  font-family: 'Inter', sans-serif;
+  background-color: #f4f4f4;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #2c3e50;
+  color: white;
+  padding: 1rem;
+}
+
+.sidebar .logo {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  margin: 1rem 0;
+  cursor: pointer;
+}
+
+.sidebar .active {
+  font-weight: bold;
+  color: #1abc9c;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Top Bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.top-bar input {
+  padding: 0.5rem;
+  width: 300px;
+}
+
+.top-icons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Sales Summary */
+.sales-summary .summary-cards {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  flex: 1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Sales Record */
+.sales-record .record-details {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.record-amount {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.chart-placeholder {
+  flex: 1;
+  background-color: white;
+  height: 200px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Popular Products */
+.popular-products .product-list {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.product-card {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+/* Recent Orders */
+.recent-orders table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.recent-orders th,
+.recent-orders td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}

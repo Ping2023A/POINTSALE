@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './inventory.css';
 import logo from '../assets/salespoint-logo.png';
 
@@ -20,15 +21,12 @@ const Inventory = () => {
     price: 0
   });
 
-  // Filter items based on search term
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate overall cost for an item
   const calculateOverallCost = (stock, price) => stock * price;
 
-  // Handle adding new item
   const handleAddItem = (e) => {
     e.preventDefault();
     const id = items.length > 0 ? Math.max(...items.map(item => item.id)) + 1 : 1;
@@ -37,44 +35,46 @@ const Inventory = () => {
     setShowAddModal(false);
   };
 
-
   return (
-    <div className="pos-container">
-      {/* Left Sidebar */}
-      <div className="sidebar">
-        <div className="nav-icon">🏠</div>
-        <div className="nav-icon">🧾</div>
-        <div className="nav-icon">⚙️</div>
-      </div>
+    <div className="dashboard">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <h2 className="logo">Sales Point</h2>
+        <nav>
+          <ul>
+            <li><Link to="/dashboard">Dashboard</Link></li>
+            <li>Roles</li>
+            <li className="active"><Link to="/inventory">Inventory</Link></li>
+            <li><Link to="/order">Order Entries</Link></li>
+            <li>Audit Logs</li>
+            <li>Shift Board</li>
+            <li>Sign Out</li>
+          </ul>
+        </nav>
+      </aside>
 
-      <div className="main-content">
-        {/* Top Bar */}
-        <div className="top-bar">
-          <div className="logo-container">
-            <img src={logo} alt="Sales Point Logo" className="logo" />
+      {/* Main Content */}
+      <main className="main-content">
+        <header className="top-bar">
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <div className="top-icons">
+            <span className="user">John Doe Owner</span>
           </div>
-          <div className="header-content">
-            <h1>Inventory Management</h1>
-            <div className="search-add-container">
-              <input
-                type="text"
-                placeholder="Search items..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
-              <button
-                className="add-item-button"
-                onClick={() => setShowAddModal(true)}
-              >
-                Add Item
-              </button>
-            </div>
-          </div>
-          <div className="user-profile">John Doe Owner</div>
-        </div>
+        </header>
 
-        <div className="inventory-table-container">
+        <section className="inventory-header">
+          <h1>Inventory Management</h1>
+          <button className="add-item-button" onClick={() => setShowAddModal(true)}>
+            Add Item
+          </button>
+        </section>
+
+        <section className="inventory-table-container">
           <table className="inventory-table">
             <thead>
               <tr>
@@ -97,7 +97,7 @@ const Inventory = () => {
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
 
         {/* Add Item Modal */}
         {showAddModal && (
@@ -110,7 +110,7 @@ const Inventory = () => {
                   <input
                     type="text"
                     value={newItem.name}
-                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                     required
                   />
                 </div>
@@ -118,12 +118,10 @@ const Inventory = () => {
                   <label>Category:</label>
                   <select
                     value={newItem.category}
-                    onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                   >
                     {categories.map(category => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
+                      <option key={category} value={category}>{category}</option>
                     ))}
                   </select>
                 </div>
@@ -132,7 +130,7 @@ const Inventory = () => {
                   <input
                     type="number"
                     value={newItem.stock}
-                    onChange={(e) => setNewItem({...newItem, stock: parseInt(e.target.value)})}
+                    onChange={(e) => setNewItem({ ...newItem, stock: parseInt(e.target.value) })}
                     min="0"
                     required
                   />
@@ -142,7 +140,7 @@ const Inventory = () => {
                   <input
                     type="number"
                     value={newItem.price}
-                    onChange={(e) => setNewItem({...newItem, price: parseFloat(e.target.value)})}
+                    onChange={(e) => setNewItem({ ...newItem, price: parseFloat(e.target.value) })}
                     min="0"
                     step="0.01"
                     required
@@ -156,7 +154,7 @@ const Inventory = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
