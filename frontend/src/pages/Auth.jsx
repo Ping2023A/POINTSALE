@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
+  sendEmailVerification,
 } from "firebase/auth";
 
 function Auth() {
@@ -29,16 +30,27 @@ function Auth() {
       if (isLogin) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         console.log("Logged in:", userCredential.user);
+
+        if (!userCredential.user.emailVerified) {
+          await sendEmailVerification(userCredential.user);
+          alert("Verification email sent. Please check your inbox.");
+          return;
+        }
+
+        navigate("/order");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log("Signed up:", userCredential.user);
+
         await updateProfile(userCredential.user, {
           displayName: `${firstName} ${lastName}`,
         });
-      }
 
-      // ✅ Redirect to dashboard after login/signup
-      navigate("/dashboard");
+        await sendEmailVerification(userCredential.user);
+        alert("Verification email sent. Please check your inbox to activate your account.");
+        navigate("/login");
+        return;
+      }
     } catch (error) {
       console.error("Auth error:", error.message);
       alert(error.message);
