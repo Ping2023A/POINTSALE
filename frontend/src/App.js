@@ -4,6 +4,7 @@ import Auth from "./pages/Auth";
 import OrderPage from "./pages/OrderPage";
 import Inventory from "./pages/Inventory";
 import Dashboard from "./pages/Dashboard";
+import ShiftSchedule from "./pages/shift";
 import "./App.css";
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/order" element={<OrderPage />} />
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/shift" element={<ShiftSchedule />} />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
