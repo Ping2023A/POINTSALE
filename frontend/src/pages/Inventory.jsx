@@ -37,6 +37,105 @@ const Inventory = () => {
     setShowAddModal(false);
   };
 
+  // Edit / Restock / Delete states
+  const [editingItem, setEditingItem] = useState(null);
+  const [restockItem, setRestockItem] = useState(null);
+  const [deletingItem, setDeletingItem] = useState(null);
+
+  // Handlers for edit
+  const openEdit = (item) => setEditingItem(item);
+  const saveEdit = (updated) => {
+    setItems(items.map(it => (it.id === updated.id ? { ...it, name: updated.name, category: updated.category, price: updated.price } : it)));
+    setEditingItem(null);
+  };
+
+  // Handlers for restock
+  const openRestock = (item) => setRestockItem(item);
+  const confirmRestock = (id, added) => {
+    setItems(items.map(it => (it.id === id ? { ...it, stock: it.stock + added } : it)));
+    setRestockItem(null);
+  };
+
+  // Handlers for delete
+  const openDelete = (item) => setDeletingItem(item);
+  const confirmDelete = (id) => {
+    setItems(items.filter(it => it.id !== id));
+    setDeletingItem(null);
+  };
+
+  // --- Inline reusable form components ---
+  const EditItemForm = ({ item, categories, onSave, onCancel }) => {
+    const [form, setForm] = useState({ name: item.name, category: item.category, price: item.price });
+    const [error, setError] = useState('');
+
+    const handleSave = () => {
+      if (!form.name || form.name.trim() === '') return setError('Name is required');
+      if (isNaN(form.price) || Number(form.price) < 0) return setError('Price must be >= 0');
+      onSave({ ...item, name: form.name.trim(), category: form.category, price: Number(form.price) });
+    };
+
+    return (
+      <div>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        <div className="form-group">
+          <label>Item Name:</label>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </div>
+        <div className="form-group">
+          <label>Category:</label>
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Price:</label>
+          <input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    );
+  };
+
+  const RestockForm = ({ item, onConfirm, onCancel }) => {
+    const [addQty, setAddQty] = useState(0);
+
+    const newStock = (Number(item.stock) || 0) + (Number(addQty) || 0);
+
+    const handleConfirm = () => {
+      const added = Number(addQty) || 0;
+      if (added <= 0) return; // only allow adding
+      onConfirm(added);
+    };
+
+    return (
+      <div>
+        <div className="form-group">
+          <label>Item:</label>
+          <input value={item.name} readOnly />
+        </div>
+        <div className="form-group">
+          <label>Current Stock:</label>
+          <input value={item.stock} readOnly />
+        </div>
+        <div className="form-group">
+          <label>Add Stock:</label>
+          <input type="number" min="0" value={addQty} onChange={(e) => setAddQty(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>New Stock:</label>
+          <input value={newStock} readOnly />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <button onClick={handleConfirm}>Confirm</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard">
       {/* Sidebar */}
@@ -75,6 +174,9 @@ const Inventory = () => {
       {/* Main Content */}
       <main className="main-content">
         <header className="top-bar">
+          <div className="logo-container">
+            <img src={logo} alt="Sales Point Logo" className="logo" />
+          </div>
           <input
             type="text"
             placeholder="Search items..."
@@ -89,7 +191,7 @@ const Inventory = () => {
         <section className="inventory-header">
           <h1>Inventory Management</h1>
           <button className="add-item-button" onClick={() => setShowAddModal(true)}>
-            Add Item
+            Add New Item
           </button>
         </section>
 
@@ -102,6 +204,7 @@ const Inventory = () => {
                 <th>Stock</th>
                 <th>Price</th>
                 <th>Overall Cost</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -112,6 +215,13 @@ const Inventory = () => {
                   <td>{item.stock}</td>
                   <td>₱{item.price}</td>
                   <td>₱{calculateOverallCost(item.stock, item.price)}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button className="icon-btn" title="Edit Item" onClick={() => openEdit(item)}>✏️</button>
+                      <button className="icon-btn" title="Restock Item" onClick={() => openRestock(item)}>📦</button>
+                      <button className="icon-btn delete" title="Delete Item" onClick={() => openDelete(item)}>🗑️</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -170,6 +280,49 @@ const Inventory = () => {
                   <button type="button" onClick={() => setShowAddModal(false)}>Cancel</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Item Modal */}
+        {editingItem && (
+          <div className="modal">
+            <div className="modal-content">
+              <h2>Edit Item</h2>
+              <EditItemForm
+                item={editingItem}
+                categories={categories}
+                onSave={(updated) => saveEdit(updated)}
+                onCancel={() => setEditingItem(null)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Restock Modal */}
+        {restockItem && (
+          <div className="modal">
+            <div className="modal-content">
+              <h2>Restock Item</h2>
+              <RestockForm
+                item={restockItem}
+                onConfirm={(added) => confirmRestock(restockItem.id, added)}
+                onCancel={() => setRestockItem(null)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation */}
+        {deletingItem && (
+          <div className="modal">
+            <div className="modal-content">
+              <h3>Confirm Delete</h3>
+              <p>Are you sure you want to delete <strong>{deletingItem.name}</strong>?</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button onClick={() => confirmDelete(deletingItem.id)} className="modal-delete">Delete</button>
+                <button onClick={() => setDeletingItem(null)}>Cancel</button>
+              </div>
             </div>
           </div>
         )}
