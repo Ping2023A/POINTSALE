@@ -5,11 +5,12 @@ import OrderPage from "./pages/OrderPage";
 import Inventory from "./pages/Inventory";
 import Dashboard from "./pages/Dashboard";
 import ShiftSchedule from "./pages/shift";
-import AuditLogsPage from "./pages/AuditLogsPage"; // ✅ Import Audit Logs
+import AuditLogsPage from "./pages/AuditLogsPage";
+import Roles from "./pages/Roles";
 import "./App.css";
 
 function App() {
-  console.log('Rendering App');
+  console.log("Rendering App");
 
   return (
     <Router>
@@ -26,7 +27,8 @@ function App() {
         <Route path="/order" element={<OrderPage />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/shift" element={<ShiftSchedule />} />
-        <Route path="/audit" element={<AuditLogsPage />} /> {/* ✅ New Audit Logs route */}
+        <Route path="/audit" element={<AuditLogsPage />} />
+        <Route path="/roles" element={<Roles />} />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
