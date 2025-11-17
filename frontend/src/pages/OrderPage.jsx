@@ -1,3 +1,4 @@
+// OrderPage.jsx
 import React, { useState } from "react";
 import "./order.css";
 import logo from "../assets/salespoint-logo.png";
@@ -7,14 +8,15 @@ function OrderPage() {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
-  const categories = ["All", "Hot Drinks", "Cold Drinks", "Food", "Snacks"];
-  const items = [
+  // Default categories and items
+  const [categories, setCategories] = useState(["All", "Hot Drinks", "Cold Drinks", "Food", "Snacks"]);
+  const [items, setItems] = useState([
     { id: 1, name: "Americano", price: 50, category: "Hot Drinks" },
     { id: 2, name: "Frappuccino", price: 165, category: "Cold Drinks" },
     { id: 3, name: "Burger", price: 95, category: "Food", variants: ["Small", "Medium", "Large"] },
     { id: 4, name: "Donut", price: 35, category: "Snacks" },
     { id: 5, name: "Hot Chocolate", price: 70, category: "Hot Drinks" },
-  ];
+  ]);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cart, setCart] = useState([]);
@@ -26,6 +28,9 @@ function OrderPage() {
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
 
+  // Manage Menu Modal
+  const [showManageMenuModal, setShowManageMenuModal] = useState(false);
+
   const filteredItems =
     selectedCategory === "All"
       ? items
@@ -33,7 +38,7 @@ function OrderPage() {
 
   const openItemModal = (item) => {
     setSelectedItem(item);
-    setSelectedVariant(item.variants ? item.variants[1] : "");
+    setSelectedVariant(item.variants ? item.variants[0] : "");
     setShowItemModal(true);
   };
 
@@ -80,6 +85,55 @@ function OrderPage() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const finalTotal = Math.max(total - discount, 0);
+
+  // --- Manage Menu Functions ---
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState(categories[1] || "");
+  const [newItemVariants, setNewItemVariants] = useState("");
+
+  const addCategory = () => {
+    if (!newCategoryName.trim()) return;
+    if (!categories.includes(newCategoryName)) {
+      setCategories([...categories, newCategoryName]);
+      setNewCategoryName("");
+    }
+  };
+
+  const deleteCategory = (cat) => {
+    if (cat === "All") return;
+    if (window.confirm(`Delete category "${cat}"? Items in this category will also be deleted.`)) {
+      setCategories(categories.filter((c) => c !== cat));
+      setItems(items.filter((i) => i.category !== cat));
+      if (selectedCategory === cat) setSelectedCategory("All");
+    }
+  };
+
+  const addItem = () => {
+    if (!newItemName.trim() || !newItemPrice || !newItemCategory) return;
+    const variantsArray = newItemVariants
+      ? newItemVariants.split(",").map((v) => v.trim())
+      : [];
+    const newItem = {
+      id: Date.now(),
+      name: newItemName,
+      price: parseFloat(newItemPrice),
+      category: newItemCategory,
+      variants: variantsArray.length ? variantsArray : undefined,
+    };
+    setItems([...items, newItem]);
+    setNewItemName("");
+    setNewItemPrice("");
+    setNewItemVariants("");
+    setNewItemCategory(categories[1] || "");
+  };
+
+  const deleteItem = (id) => {
+    if (window.confirm("Delete this item?")) {
+      setItems(items.filter((i) => i.id !== id));
+    }
+  };
 
   return (
     <div className="pos-container">
@@ -136,7 +190,6 @@ function OrderPage() {
               {cat}
             </button>
           ))}
-          <button onClick={() => setShowAddCategoryModal(true)}>+ Add Categories</button>
         </div>
 
         <div className="item-grid">
@@ -148,7 +201,7 @@ function OrderPage() {
           ))}
         </div>
 
-        <button className="add-item-btn" onClick={() => setShowAddItemModal(true)}>+</button>
+        <button className="add-item-btn" onClick={() => setShowManageMenuModal(true)}>Manage Menu</button>
       </div>
 
       {/* Right Panel */}
@@ -230,27 +283,82 @@ function OrderPage() {
         </div>
       )}
 
-      {/* Add Item Modal (Placeholder) */}
-      {showAddItemModal && (
+      {/* Manage Menu Modal */}
+      {showManageMenuModal && (
         <div className="modal">
-          <div className="modal-content">
-            <h3>Add New Item</h3>
-            <p>[Form goes here]</p>
-            <button onClick={() => setShowAddItemModal(false)}>Close</button>
+          <div className="modal-content large-modal">
+            <h2>Manage Menu</h2>
+
+            {/* Categories Section */}
+            <div className="manage-section">
+              <h3>Categories</h3>
+              <div className="add-form">
+                <input
+                  type="text"
+                  placeholder="New Category Name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                />
+                <button onClick={addCategory}>Add Category</button>
+              </div>
+              <ul>
+                {categories.filter(c => c !== "All").map((cat) => (
+                  <li key={cat}>
+                    {cat} 
+                    <button className="delete-btn" onClick={() => deleteCategory(cat)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Items Section */}
+            <div className="manage-section">
+              <h3>Items</h3>
+              <div className="add-form">
+                <input
+                  type="text"
+                  placeholder="Item Name"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(e.target.value)}
+                />
+                <select
+                  value={newItemCategory}
+                  onChange={(e) => setNewItemCategory(e.target.value)}
+                >
+                  {categories.filter(c => c !== "All").map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Variants (optional, comma separated)"
+                  value={newItemVariants}
+                  onChange={(e) => setNewItemVariants(e.target.value)}
+                />
+                <button onClick={addItem}>Add Item</button>
+              </div>
+              <ul>
+                {items.map((item) => (
+                  <li key={item.id}>
+                    {item.name} - ₱{item.price} ({item.category})
+                    {item.variants && <> [{item.variants.join(", ")}]</>}
+                    <button className="delete-btn" onClick={() => deleteItem(item.id)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <button onClick={() => setShowManageMenuModal(false)}>Close</button>
           </div>
         </div>
       )}
 
-      {/* Add Category Modal (Placeholder) */}
-      {showAddCategoryModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>Add New Category</h3>
-            <p>[Form goes here]</p>
-            <button onClick={() => setShowAddCategoryModal(false)}>Close</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
