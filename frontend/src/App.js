@@ -5,6 +5,7 @@ import OrderPage from "./pages/OrderPage";
 import Inventory from "./pages/Inventory";
 import Dashboard from "./pages/Dashboard";
 import ShiftSchedule from "./pages/shift";
+import AuditLogsPage from "./pages/AuditLogsPage"; // ✅ Import Audit Logs
 import "./App.css";
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/order" element={<OrderPage />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/shift" element={<ShiftSchedule />} />
+        <Route path="/audit" element={<AuditLogsPage />} /> {/* ✅ New Audit Logs route */}
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />

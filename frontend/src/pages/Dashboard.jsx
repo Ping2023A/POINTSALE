@@ -14,7 +14,7 @@ const Dashboard = () => {
             <li>Roles</li>
             <li><Link to="/inventory">Inventory</Link></li>
             <li><Link to="/order">Order Entries</Link></li>
-            <li>Audit Logs</li>
+            <li><Link to="/audit">Audit Logs</Link></li>
             <li>Shift Board</li>
             <li>Sign Out</li>
           </ul>
