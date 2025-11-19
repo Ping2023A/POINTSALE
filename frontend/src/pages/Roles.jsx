@@ -6,6 +6,7 @@ import logo from "../assets/salespoint-logo.png";
 const Roles = () => {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const users = [
     { name: "John Doe", email: "john.doe@gmail.com", role: "Owner", date: "June 30, 2025 - 02:21 PM", phone: "0917-125-5245" },
@@ -20,38 +21,28 @@ const Roles = () => {
     { name: "Nicole Bautista", email: "nicole.bautista@gmail.com", role: "Staff", date: "July 2, 2025 - 06:00 PM", phone: "0917-901-2345" },
   ];
 
+  const filteredUsers = users.filter((user) =>
+    Object.values(user).some((value) =>
+      value.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
   return (
     <div className="dashboard">
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}>
         <div>
           <div className="nav-toggle" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</div>
-          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>
-            🏠 {sidebarExpanded && <span>Dashboard</span>}
-          </Link>
-          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>
-            👥 {sidebarExpanded && <span>Roles</span>}
-          </Link>
-          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>
-            📦 {sidebarExpanded && <span>Inventory</span>}
-          </Link>
-          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>
-            🧾 {sidebarExpanded && <span>Order Entries</span>}
-          </Link>
-          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>
-            🕵️ {sidebarExpanded && <span>Audit Logs</span>}
-          </Link>
-          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>
-            📅 {sidebarExpanded && <span>Shift Board</span>}
-          </Link>
+          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>🏠 {sidebarExpanded && <span>Dashboard</span>}</Link>
+          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>👥 {sidebarExpanded && <span>Roles</span>}</Link>
+          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>📦 {sidebarExpanded && <span>Inventory</span>}</Link>
+          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>🧾 {sidebarExpanded && <span>Order Entries</span>}</Link>
+          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>🕵️ {sidebarExpanded && <span>Audit Logs</span>}</Link>
+          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>📅 {sidebarExpanded && <span>Shift Board</span>}</Link>
         </div>
         <div>
-          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>
-            ⚙️ {sidebarExpanded && <span>Settings</span>}
-          </Link>
-          <Link to="/login" className="nav-icon">
-            🔓 {sidebarExpanded && <span>Sign Out</span>}
-          </Link>
+          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>⚙️ {sidebarExpanded && <span>Settings</span>}</Link>
+          <Link to="/login" className="nav-icon">🔓 {sidebarExpanded && <span>Sign Out</span>}</Link>
         </div>
       </aside>
 
@@ -60,7 +51,12 @@ const Roles = () => {
         <header className="top-bar">
           <div className="header-left">
             <img src={logo} alt="Sales Point Logo" className="header-logo" />
-            <input type="text" placeholder="Search users..." />
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
           <div className="top-icons">
             <span className="user">John Doe Owner</span>
@@ -81,7 +77,7 @@ const Roles = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map((user, index) => (
+              {filteredUsers.map((user, index) => (
                 <tr key={index}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
@@ -94,6 +90,13 @@ const Roles = () => {
                   </td>
                 </tr>
               ))}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
+                    No users found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </section>
