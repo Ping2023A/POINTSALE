@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import ShiftSchedule from "./pages/shift";
 import AuditLogsPage from "./pages/AuditLogsPage";
 import Roles from "./pages/Roles";
+import SettingsPage from "./pages/SettingsPage";   // ✅ Import SettingsPage
 import "./App.css";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         <Route path="/shift" element={<ShiftSchedule />} />
         <Route path="/audit" element={<AuditLogsPage />} />
         <Route path="/roles" element={<Roles />} />
+        <Route path="/settings" element={<SettingsPage />} /> {/* ✅ Settings route */}
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />
