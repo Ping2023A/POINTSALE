@@ -7,8 +7,7 @@ const Roles = () => {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const users = [
+  const [users, setUsers] = useState([
     { name: "John Doe", email: "john.doe@gmail.com", role: "Owner", date: "June 30, 2025 - 02:21 PM", phone: "0917-125-5245" },
     { name: "Maria Santos", email: "maria.santos@gmail.com", role: "Staff", date: "July 1, 2025 - 07:45 AM", phone: "0917-123-4567" },
     { name: "John Reyes", email: "john.reyes@gmail.com", role: "Staff", date: "July 2, 2025 - 08:30 PM", phone: "0917-234-5678" },
@@ -19,13 +18,35 @@ const Roles = () => {
     { name: "Ana Lim", email: "ana.lim@gmail.com", role: "Staff", date: "July 2, 2025 - 06:49 PM", phone: "0917-789-0123" },
     { name: "Paolo Gutierrez", email: "paolo.gutierrez@gmail.com", role: "Staff", date: "July 2, 2025 - 06:23 PM", phone: "0917-890-1234" },
     { name: "Nicole Bautista", email: "nicole.bautista@gmail.com", role: "Staff", date: "July 2, 2025 - 06:00 PM", phone: "0917-901-2345" },
-  ];
+  ]);
+
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editData, setEditData] = useState({ name: "", email: "", role: "", date: "", phone: "" });
 
   const filteredUsers = users.filter((user) =>
     Object.values(user).some((value) =>
       value.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const handleDelete = (index) => {
+    const updated = [...users];
+    updated.splice(index, 1);
+    setUsers(updated);
+  };
+
+  const handleEdit = (index) => {
+    setEditingIndex(index);
+    setEditData(users[index]);
+  };
+
+  const handleSave = () => {
+    const updated = [...users];
+    updated[editingIndex] = editData;
+    setUsers(updated);
+    setEditingIndex(null);
+    setEditData({ name: "", email: "", role: "", date: "", phone: "" });
+  };
 
   return (
     <div className="dashboard">
@@ -77,19 +98,22 @@ const Roles = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user, index) => (
-                <tr key={index}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.role}</td>
-                  <td>{user.date}</td>
-                  <td>{user.phone}</td>
-                  <td>
-                    <button className="edit-btn">✏️</button>
-                    <button className="delete-btn">🗑️</button>
-                  </td>
-                </tr>
-              ))}
+              {filteredUsers.map((user, index) => {
+                const globalIndex = users.findIndex(u => u.email === user.email);
+                return (
+                  <tr key={index}>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>{user.role}</td>
+                    <td>{user.date}</td>
+                    <td>{user.phone}</td>
+                    <td>
+                      <button className="edit-btn" onClick={() => handleEdit(globalIndex)}>✏️</button>
+                      <button className="delete-btn" onClick={() => handleDelete(globalIndex)}>🗑️</button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
@@ -100,6 +124,24 @@ const Roles = () => {
             </tbody>
           </table>
         </section>
+
+        {/* Edit Modal */}
+        {editingIndex !== null && (
+          <div className="modal">
+            <div className="modal-content">
+              <h3>Edit User</h3>
+              <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} placeholder="Name" />
+              <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} placeholder="Email" />
+              <input type="text" value={editData.role} onChange={(e) => setEditData({ ...editData, role: e.target.value })} placeholder="Role" />
+              <input type="text" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} placeholder="Hiring Date" />
+              <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} placeholder="Phone" />
+              <div className="modal-buttons">
+                <button onClick={handleSave}>Save</button>
+                <button onClick={() => setEditingIndex(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
