@@ -1,4 +1,5 @@
 // OrderPage.jsx
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import "./order.css";
 import logo from "../assets/salespoint-logo.png";

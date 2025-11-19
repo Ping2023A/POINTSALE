@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./roles.css";
 import logo from "../assets/salespoint-logo.png";
@@ -7,32 +7,50 @@ const Roles = () => {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState([
-    { name: "John Doe", email: "john.doe@gmail.com", role: "Owner", date: "June 30, 2025 - 02:21 PM", phone: "0917-125-5245" },
-    { name: "Maria Santos", email: "maria.santos@gmail.com", role: "Staff", date: "July 1, 2025 - 07:45 AM", phone: "0917-123-4567" },
-    { name: "John Reyes", email: "john.reyes@gmail.com", role: "Staff", date: "July 2, 2025 - 08:30 PM", phone: "0917-234-5678" },
-    { name: "Liza Fernandez", email: "liza.fernandez@gmail.com", role: "Staff", date: "July 2, 2025 - 08:10 PM", phone: "0917-345-6789" },
-    { name: "Carlo Dela Cruz", email: "carlo.delacruz@gmail.com", role: "Staff", date: "July 2, 2025 - 07:52 PM", phone: "0917-456-7890" },
-    { name: "Jenny Robles", email: "jenny.robles@gmail.com", role: "Staff", date: "July 2, 2025 - 07:44 PM", phone: "0917-567-8901" },
-    { name: "Kevin Morales", email: "kevin.morales@gmail.com", role: "Staff", date: "July 2, 2025 - 07:11 PM", phone: "0917-678-9012" },
-    { name: "Ana Lim", email: "ana.lim@gmail.com", role: "Staff", date: "July 2, 2025 - 06:49 PM", phone: "0917-789-0123" },
-    { name: "Paolo Gutierrez", email: "paolo.gutierrez@gmail.com", role: "Staff", date: "July 2, 2025 - 06:23 PM", phone: "0917-890-1234" },
-    { name: "Nicole Bautista", email: "nicole.bautista@gmail.com", role: "Staff", date: "July 2, 2025 - 06:00 PM", phone: "0917-901-2345" },
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [editData, setEditData] = useState({ name: "", email: "", role: "", date: "", phone: "" });
+  const [editData, setEditData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    date: "",
+    phone: ""
+  });
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    role: "",
+    date: "",
+    phone: ""
+  });
+
+  // Fetch users from backend
+  useEffect(() => {
+    fetch("http://localhost:5000/api/roles")
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch((err) => console.error("Failed to load roles:", err));
+  }, []);
 
   const filteredUsers = users.filter((user) =>
-    Object.values(user).some((value) =>
-      value.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    Object.values(user)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (index) => {
-    const updated = [...users];
-    updated.splice(index, 1);
-    setUsers(updated);
+  const handleDelete = async (index) => {
+    const user = users[index];
+    try {
+      await fetch(`http://localhost:5000/api/roles/${user._id}`, {
+        method: "DELETE"
+      });
+      setUsers(users.filter((_, i) => i !== index));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
   };
 
   const handleEdit = (index) => {
@@ -40,12 +58,39 @@ const Roles = () => {
     setEditData(users[index]);
   };
 
-  const handleSave = () => {
-    const updated = [...users];
-    updated[editingIndex] = editData;
-    setUsers(updated);
-    setEditingIndex(null);
-    setEditData({ name: "", email: "", role: "", date: "", phone: "" });
+  const handleSave = async () => {
+    const user = users[editingIndex];
+    try {
+      const res = await fetch(`http://localhost:5000/api/roles/${user._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData)
+      });
+      const updated = await res.json();
+      const newUsers = [...users];
+      newUsers[editingIndex] = updated;
+      setUsers(newUsers);
+      setEditingIndex(null);
+      setEditData({ name: "", email: "", role: "", date: "", phone: "" });
+    } catch (err) {
+      console.error("Update failed:", err);
+    }
+  };
+
+  const handleAddUser = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser)
+      });
+      const created = await res.json();
+      setUsers((prev) => [...prev, created]);
+      setShowAddModal(false);
+      setNewUser({ name: "", email: "", role: "", date: "", phone: "" });
+    } catch (err) {
+      console.error("Create failed:", err);
+    }
   };
 
   return (
@@ -53,17 +98,38 @@ const Roles = () => {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}>
         <div>
-          <div className="nav-toggle" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</div>
-          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>🏠 {sidebarExpanded && <span>Dashboard</span>}</Link>
-          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>👥 {sidebarExpanded && <span>Roles</span>}</Link>
-          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>📦 {sidebarExpanded && <span>Inventory</span>}</Link>
-          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>🧾 {sidebarExpanded && <span>Order Entries</span>}</Link>
-          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>🕵️ {sidebarExpanded && <span>Audit Logs</span>}</Link>
-          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>📅 {sidebarExpanded && <span>Shift Board</span>}</Link>
+          <div
+            className="nav-toggle"
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+          >
+            ☰
+          </div>
+          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>
+            🏠 {sidebarExpanded && <span>Dashboard</span>}
+          </Link>
+          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>
+            👥 {sidebarExpanded && <span>Roles</span>}
+          </Link>
+          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>
+            📦 {sidebarExpanded && <span>Inventory</span>}
+          </Link>
+          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>
+            🧾 {sidebarExpanded && <span>Order Entries</span>}
+          </Link>
+          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>
+            🕵️ {sidebarExpanded && <span>Audit Logs</span>}
+          </Link>
+          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>
+            📅 {sidebarExpanded && <span>Shift Board</span>}
+          </Link>
         </div>
         <div>
-          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>⚙️ {sidebarExpanded && <span>Settings</span>}</Link>
-          <Link to="/login" className="nav-icon">🔓 {sidebarExpanded && <span>Sign Out</span>}</Link>
+          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>
+            ⚙️ {sidebarExpanded && <span>Settings</span>}
+          </Link>
+          <Link to="/login" className="nav-icon">
+            🔓 {sidebarExpanded && <span>Sign Out</span>}
+          </Link>
         </div>
       </aside>
 
@@ -81,6 +147,9 @@ const Roles = () => {
           </div>
           <div className="top-icons">
             <span className="user">John Doe Owner</span>
+            <button onClick={() => setShowAddModal(true)} className="add-btn">
+              + Add User
+            </button>
           </div>
         </header>
 
@@ -98,22 +167,19 @@ const Roles = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user, index) => {
-                const globalIndex = users.findIndex(u => u.email === user.email);
-                return (
-                  <tr key={index}>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.role}</td>
-                    <td>{user.date}</td>
-                    <td>{user.phone}</td>
-                    <td>
-                      <button className="edit-btn" onClick={() => handleEdit(globalIndex)}>✏️</button>
-                      <button className="delete-btn" onClick={() => handleDelete(globalIndex)}>🗑️</button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredUsers.map((user, index) => (
+                <tr key={user._id}>
+                  <td>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.role}</td>
+                  <td>{user.date}</td>
+                  <td>{user.phone}</td>
+                  <td>
+                    <button className="edit-btn" onClick={() => handleEdit(index)}>✏️</button>
+                    <button className="delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
               {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
@@ -142,9 +208,28 @@ const Roles = () => {
             </div>
           </div>
         )}
+
+        {/* Add User Modal */}
+        {showAddModal && (
+          <div className="modal">
+            <div className="modal-content">
+              <h3>Add New User</h3>
+              <input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} placeholder="Name" />
+              <input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email" />
+              <input type="text" value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} placeholder="Role" />
+              <input type="text" value={newUser.date} onChange={(e) => setNewUser({ ...newUser, date: e.target.value })} placeholder="Hiring Date" />
+              <input type="text" value={newUser.phone} onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })} placeholder="Phone" />
+              <div className="modal-buttons">
+                <button onClick={handleAddUser}>Add</button>
+                <button onClick={() => setShowAddModal(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
 export default Roles;
+

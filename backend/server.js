@@ -6,6 +6,9 @@ import cors from "cors";
 
 // Import routes
 import inventoryRoutes from "./routes/inventory.routes.js";
+import auditRoutes from "./routes/audit.routes.js";
+import roleRoutes from "./routes/roles.routes.js";
+
 // Uncomment and fix the path if you have product routes
 // import productRoutes from "./routes/product.routes.js";
 
@@ -19,6 +22,9 @@ app.use(express.json());
 
 // Routes
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/audit", auditRoutes);
+app.use("/api/roles", roleRoutes);
+
 // Uncomment this if you have product routes
 // app.use("/api/products", productRoutes);
 
