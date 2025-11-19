@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './inventory.css';
 import logo from '../assets/salespoint-logo.png';
@@ -13,6 +13,15 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
+
+  // Sorting & filtering state
+  const [filteredItems, setFilteredItems] = useState([]);
+  // Default sort: Item name ascending
+  const [sortBy, setSortBy] = useState('name'); // 'name' | 'category' | 'stock' | 'price' | 'overall'
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' | 'desc' | null
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [stockFilters, setStockFilters] = useState({ low: false, out: false, in: false });
+  const [animate, setAnimate] = useState(false);
 
   // Edit / Restock / Delete states
   const [editingItem, setEditingItem] = useState(null);
@@ -35,10 +44,70 @@ const Inventory = () => {
       });
   }, []);
 
-  // Filtered items for search
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Compute filteredItems from search, category and stock filters (Filtering -> Sorting -> Render)
+  useEffect(() => {
+    let list = items.slice(); // copy original
+
+    // Search filter
+    if (searchTerm && searchTerm.trim() !== '') {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(it => (it.name || '').toLowerCase().includes(q));
+    }
+
+    // Category filter
+    if (selectedCategory && selectedCategory !== 'All') {
+      list = list.filter(it => it.category === selectedCategory);
+    }
+
+    // Stock filters (can be multiple)
+    const active = Object.entries(stockFilters).filter(([k, v]) => v).map(([k]) => k);
+    if (active.length > 0) {
+      list = list.filter(it => {
+        return active.some(f => {
+          if (f === 'low') return (Number(it.stock) || 0) < 20 && (Number(it.stock) || 0) > 0;
+          if (f === 'out') return Number(it.stock) === 0;
+          if (f === 'in') return Number(it.stock) > 0;
+          return false;
+        });
+      });
+    }
+
+    // update state and trigger fade animation
+    setFilteredItems(list);
+    setAnimate(true);
+    const t = setTimeout(() => setAnimate(false), 260);
+    return () => clearTimeout(t);
+  }, [items, searchTerm, selectedCategory, stockFilters]);
+
+  // Sorting (derived from filteredItems, do not mutate original)
+  const sortedItems = useMemo(() => {
+    const list = filteredItems.slice();
+    if (!sortBy) return list;
+    const dir = sortDirection === 'asc' ? 1 : -1;
+    list.sort((a, b) => {
+      let av, bv;
+      if (sortBy === 'overall') {
+        av = (Number(a.stock) || 0) * (Number(a.price) || 0);
+        bv = (Number(b.stock) || 0) * (Number(b.price) || 0);
+      } else {
+        av = a[sortBy];
+        bv = b[sortBy];
+      }
+      if (typeof av === 'string') return av.localeCompare(bv) * dir;
+      return (Number(av) - Number(bv)) * dir;
+    });
+    return list;
+  }, [filteredItems, sortBy, sortDirection]);
+
+  const handleSort = (col) => {
+    if (sortBy !== col) {
+      setSortBy(col);
+      setSortDirection('asc');
+      return;
+    }
+    if (sortDirection === 'asc') setSortDirection('desc');
+    else if (sortDirection === 'desc') { setSortBy(null); setSortDirection(null); }
+  };
 
   const calculateOverallCost = (stock, price) => stock * price;
 
@@ -73,7 +142,8 @@ const Inventory = () => {
         body: JSON.stringify(updatedItem),
       });
       const updated = await res.json();
-      setItems(prev => prev.map(it => it._id === updated._id ? updated : it));
+      const idKey = updated._id || updated.id;
+      setItems(prev => prev.map(it => ((it._id === idKey) || (it.id === idKey)) ? updated : it));
       setEditingItem(null);
     } catch (err) {
       console.error("Update error:", err);
@@ -84,7 +154,7 @@ const Inventory = () => {
   // Restock item
   // ----------------------------------------
   const confirmRestock = async (id, added) => {
-    const item = items.find(i => i._id === id);
+    const item = items.find(i => (i._id === id) || (i.id === id));
     if (!item) return;
     try {
       const res = await fetch(`http://localhost:5000/api/inventory/${id}`, {
@@ -93,7 +163,7 @@ const Inventory = () => {
         body: JSON.stringify({ ...item, stock: item.stock + added }),
       });
       const updated = await res.json();
-      setItems(prev => prev.map(it => it._id === id ? updated : it));
+      setItems(prev => prev.map(it => ((it._id === id) || (it.id === id)) ? updated : it));
       setRestockItem(null);
     } catch (err) {
       console.error("Restock error:", err);
@@ -107,7 +177,7 @@ const Inventory = () => {
     if (!window.confirm("Delete this item?")) return;
     try {
       await fetch(`http://localhost:5000/api/inventory/${id}`, { method: "DELETE" });
-      setItems(prev => prev.filter(it => it._id !== id));
+      setItems(prev => prev.filter(it => !((it._id === id) || (it.id === id))));
       setDeletingItem(null);
     } catch (err) {
       console.error("Delete error:", err);
@@ -208,21 +278,58 @@ const Inventory = () => {
           <h1>Inventory Management</h1>
           <button className="add-item-button" onClick={() => setShowAddModal(true)}>Add New Item</button>
         </section>
+        <div className="table-controls">
+          <div className="controls-left">
+            <label className="control-label">Category:</label>
+            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+              <option value="All">All Categories</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <div className="filter-chips">
+              <button className={`chip ${stockFilters.low ? 'active' : ''}`} onClick={() => setStockFilters(s => ({ ...s, low: !s.low }))}>Low Stock</button>
+              <button className={`chip ${stockFilters.out ? 'active' : ''}`} onClick={() => setStockFilters(s => ({ ...s, out: !s.out }))}>Out of Stock</button>
+              <button className={`chip ${stockFilters.in ? 'active' : ''}`} onClick={() => setStockFilters(s => ({ ...s, in: !s.in }))}>In Stock</button>
+            </div>
+          </div>
+
+          <div className="controls-right">
+            <label className="control-label">Sort By:</label>
+            <select value={sortBy ? `${sortBy}:${sortDirection || 'asc'}` : ''} onChange={e => {
+              const v = e.target.value;
+              if (!v) { setSortBy(null); setSortDirection(null); return; }
+              const [col, dir] = v.split(':');
+              setSortBy(col); setSortDirection(dir || 'asc');
+            }}>
+              <option value="">(none)</option>
+              <option value="name:asc">Item ▲</option>
+              <option value="name:desc">Item ▼</option>
+              <option value="category:asc">Category ▲</option>
+              <option value="category:desc">Category ▼</option>
+              <option value="stock:asc">Stock ▲</option>
+              <option value="stock:desc">Stock ▼</option>
+              <option value="price:asc">Price ▲</option>
+              <option value="price:desc">Price ▼</option>
+              <option value="overall:asc">Overall ▲</option>
+              <option value="overall:desc">Overall ▼</option>
+            </select>
+          </div>
+        </div>
 
         <section className="inventory-table-container">
-          <table className="inventory-table">
+          <table className={`inventory-table ${animate ? 'table-fade' : ''}`}>
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Category</th>
-                <th>Stock</th>
-                <th>Price</th>
-                <th>Overall Cost</th>
+                <th className={`th-sortable ${sortBy === 'name' ? 'sorted' : ''}`} onClick={() => handleSort('name')}>Item {sortBy === 'name' && (sortDirection === 'asc' ? '▲' : (sortDirection === 'desc' ? '▼' : ''))}</th>
+                <th className={`th-sortable ${sortBy === 'category' ? 'sorted' : ''}`} onClick={() => handleSort('category')}>Category {sortBy === 'category' && (sortDirection === 'asc' ? '▲' : (sortDirection === 'desc' ? '▼' : ''))}</th>
+                <th className={`th-sortable ${sortBy === 'stock' ? 'sorted' : ''}`} onClick={() => handleSort('stock')}>Stock {sortBy === 'stock' && (sortDirection === 'asc' ? '▲' : (sortDirection === 'desc' ? '▼' : ''))}</th>
+                <th className={`th-sortable ${sortBy === 'price' ? 'sorted' : ''}`} onClick={() => handleSort('price')}>Price {sortBy === 'price' && (sortDirection === 'asc' ? '▲' : (sortDirection === 'desc' ? '▼' : ''))}</th>
+                <th className={`th-sortable ${sortBy === 'overall' ? 'sorted' : ''}`} onClick={() => handleSort('overall')}>Overall Cost {sortBy === 'overall' && (sortDirection === 'asc' ? '▲' : (sortDirection === 'desc' ? '▼' : ''))}</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map(item => (
+              {sortedItems.map(item => (
                 <tr key={item._id || item.id}>
                   <td>{item.name}</td>
                   <td>{item.category}</td>
@@ -230,9 +337,9 @@ const Inventory = () => {
                   <td>₱{item.price}</td>
                   <td>₱{calculateOverallCost(item.stock, item.price)}</td>
                   <td>
-                    <button onClick={() => setEditingItem(item)}>✏️</button>
-                    <button onClick={() => setRestockItem(item)}>📦</button>
-                    <button onClick={() => setDeletingItem(item)}>🗑️</button>
+                    <button className="icon-btn" title="Edit Item" onClick={() => setEditingItem(item)}>✏️</button>
+                    <button className="icon-btn" title="Restock Item" onClick={() => setRestockItem(item)}>📦</button>
+                    <button className="icon-btn delete" title="Delete Item" onClick={() => setDeletingItem(item)}>🗑️</button>
                   </td>
                 </tr>
               ))}
