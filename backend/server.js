@@ -25,7 +25,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.get("/", (req, res) => res.send("POS API Running"));
 
 // Connect to MongoDB
-const MONGO = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/posdb";
+const MONGO = process.env.MONGO_URI || "mongodb+srv://<db_username>:<db_password>@cluster0.wephneg.mongodb.net/?appName=Cluster0";
 mongoose.connect(MONGO)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error("MongoDB error:", err));
