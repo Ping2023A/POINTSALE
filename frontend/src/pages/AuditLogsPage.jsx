@@ -37,49 +37,37 @@ function AuditLogsPage() {
           </div>
           <Link
             to="/dashboard"
-            className={`nav-icon ${
-              location.pathname === "/dashboard" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}
           >
             🏠 {sidebarExpanded && <span>Dashboard</span>}
           </Link>
           <Link
             to="/roles"
-            className={`nav-icon ${
-              location.pathname === "/roles" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}
           >
             👥 {sidebarExpanded && <span>Roles</span>}
           </Link>
           <Link
             to="/inventory"
-            className={`nav-icon ${
-              location.pathname === "/inventory" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}
           >
             📦 {sidebarExpanded && <span>Inventory</span>}
           </Link>
           <Link
             to="/order"
-            className={`nav-icon ${
-              location.pathname === "/order" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}
           >
             🧾 {sidebarExpanded && <span>Order Entries</span>}
           </Link>
           <Link
             to="/audit"
-            className={`nav-icon ${
-              location.pathname === "/audit" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}
           >
             🕵️ {sidebarExpanded && <span>Audit Logs</span>}
           </Link>
           <Link
             to="/shift"
-            className={`nav-icon ${
-              location.pathname === "/shift" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}
           >
             📅 {sidebarExpanded && <span>Shift Board</span>}
           </Link>
@@ -87,9 +75,7 @@ function AuditLogsPage() {
         <div>
           <Link
             to="/settings"
-            className={`nav-icon ${
-              location.pathname === "/settings" ? "active" : ""
-            }`}
+            className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}
           >
             ⚙️ {sidebarExpanded && <span>Settings</span>}
           </Link>
@@ -110,46 +96,48 @@ function AuditLogsPage() {
             placeholder="Search audit logs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-box"
           />
           <div className="user-profile">John Doe</div>
         </header>
 
-        <section className="audit-header">
+        <section className="audit-section">
           <h2>Audit Logs</h2>
-        </section>
 
-        <section className="audit-table">
-          <div className="table-header">
-            <span>Email</span>
-            <span>Role</span>
-            <span>Date</span>
-            <span>Actions Taken</span>
+          <div className="audit-table-wrapper">
+            <div className="table-header">
+              <div>Email</div>
+              <div>Role</div>
+              <div>Date</div>
+              <div>Actions Taken</div>
+            </div>
+
+            {filteredLogs.length > 0 ? (
+              <div className="audit-logs-scroll">
+                {filteredLogs.map((log, index) => (
+                  <div
+                    key={log._id}
+                    className={`audit-log-entry ${index % 2 === 0 ? "even" : "odd"}`}
+                  >
+                    <div>{log.email}</div>
+                    <div>{log.role}</div>
+                    <div>{new Date(log.date || log.createdAt).toLocaleString()}</div>
+                    <div>{log.action}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-log">No audit logs match your search criteria.</p>
+            )}
           </div>
 
-          {filteredLogs.length > 0 ? (
-            filteredLogs.map((log) => (
-              <div key={log._id} className="audit-log-entry">
-                <span>{log.email}</span>
-                <span>{log.role}</span>
-                <span>
-                  {new Date(log.date || log.createdAt).toLocaleString()}
-                </span>
-                <span>{log.action}</span>
-              </div>
-            ))
-          ) : (
-            <div className="empty-cart">
-              No audit logs match your search criteria.
-            </div>
-          )}
-        </section>
-
-        <section className="audit-overview">
-          <h3>Audit Overview</h3>
-          <p className="empty-cart">
-            Once employees begin taking actions, logs will appear here for
-            review.
-          </p>
+          <div className="audit-overview-card">
+            <h3>Audit Overview</h3>
+            <p>
+              All actions taken by employees are logged here for review. This helps maintain
+              accountability and track system changes.
+            </p>
+          </div>
         </section>
       </main>
     </div>
