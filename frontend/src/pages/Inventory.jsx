@@ -243,8 +243,6 @@ const Inventory = () => {
     );
   };
 
-  if (loading) return <p>Loading inventory...</p>;
-
   return (
     <div className="dashboard">
       {/* Sidebar */}
@@ -291,28 +289,6 @@ const Inventory = () => {
               <button className={`chip ${stockFilters.out ? 'active' : ''}`} onClick={() => setStockFilters(s => ({ ...s, out: !s.out }))}>Out of Stock</button>
               <button className={`chip ${stockFilters.in ? 'active' : ''}`} onClick={() => setStockFilters(s => ({ ...s, in: !s.in }))}>In Stock</button>
             </div>
-          </div>
-
-          <div className="controls-right">
-            <label className="control-label">Sort By:</label>
-            <select value={sortBy ? `${sortBy}:${sortDirection || 'asc'}` : ''} onChange={e => {
-              const v = e.target.value;
-              if (!v) { setSortBy(null); setSortDirection(null); return; }
-              const [col, dir] = v.split(':');
-              setSortBy(col); setSortDirection(dir || 'asc');
-            }}>
-              <option value="">(none)</option>
-              <option value="name:asc">Item ▲</option>
-              <option value="name:desc">Item ▼</option>
-              <option value="category:asc">Category ▲</option>
-              <option value="category:desc">Category ▼</option>
-              <option value="stock:asc">Stock ▲</option>
-              <option value="stock:desc">Stock ▼</option>
-              <option value="price:asc">Price ▲</option>
-              <option value="price:desc">Price ▼</option>
-              <option value="overall:asc">Overall ▲</option>
-              <option value="overall:desc">Overall ▼</option>
-            </select>
           </div>
         </div>
 
