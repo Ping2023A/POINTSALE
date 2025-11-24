@@ -29,7 +29,8 @@ ChartJS.register(
 );
 
 const DashboardChart = ({ weeklySales }) => {
-  if (!weeklySales) return <div>Loading chart...</div>;
+  if (!weeklySales || weeklySales.length === 0)
+    return <div style={{ textAlign: "center" }}>Loading chart...</div>;
 
   const labels = weeklySales.map((s) => s._id);
   const data = weeklySales.map((s) => s.total);
@@ -43,6 +44,7 @@ const DashboardChart = ({ weeklySales }) => {
         borderColor: "#1abc9c",
         backgroundColor: "rgba(26,188,156,0.25)",
         tension: 0.4,
+        fill: true,
       },
     ],
   };
@@ -53,6 +55,7 @@ const DashboardChart = ({ weeklySales }) => {
       legend: { position: "top" },
       title: { display: true, text: "Weekly Sales Chart" },
     },
+    maintainAspectRatio: false,
   };
 
   return <Line data={chartData} options={options} />;
@@ -61,8 +64,8 @@ const DashboardChart = ({ weeklySales }) => {
 const Dashboard = () => {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [weeklySales, setWeeklySales] = useState(null);
-  const [summary, setSummary] = useState(null);
+  const [weeklySales, setWeeklySales] = useState([]);
+  const [summary, setSummary] = useState({});
   const [recentOrders, setRecentOrders] = useState([]);
   const [popularProducts, setPopularProducts] = useState([]);
 
@@ -70,16 +73,17 @@ const Dashboard = () => {
     axios
       .get("http://localhost:5000/api/dashboard")
       .then((res) => {
-        setWeeklySales(res.data.weeklySales);
-        setSummary(res.data.summary);
-        setRecentOrders(res.data.recentOrders);
-        setPopularProducts(res.data.popularProducts);
+        setWeeklySales(res.data.weeklySales || []);
+        setSummary(res.data.summary || {});
+        setRecentOrders(res.data.recentOrders || []);
+        setPopularProducts(res.data.popularProducts || []);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("Dashboard fetch error:", err));
   }, []);
 
   return (
     <div className="dashboard">
+      {/* Sidebar */}
       <aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}>
         <div>
           <div
@@ -155,7 +159,9 @@ const Dashboard = () => {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="main-content">
+        {/* Top Bar */}
         <header className="top-bar">
           <div className="logo-container">
             <img src={logo} alt="SalesPoint Logo" className="topbar-logo" />
@@ -167,34 +173,33 @@ const Dashboard = () => {
           </div>
         </header>
 
+        {/* Sales Summary */}
         <section className="sales-summary">
           <h3>Today's Sales</h3>
           <div className="summary-cards">
+            <div className="card">Total Sales: ₱{summary.totalSales || 0}</div>
             <div className="card">
-              Total Sales: ₱{summary?.totalSales || 0}
+              Total Customers: {summary.totalCustomers || 0}
             </div>
+            <div className="card">Total Orders: {summary.totalOrders || 0}</div>
             <div className="card">
-              Total Customers: {summary?.totalCustomers || 0}
-            </div>
-            <div className="card">Total Orders: {summary?.totalOrders || 0}</div>
-            <div className="card">
-              Average Sale: ₱{summary?.avgSale?.toFixed(2) || 0}
+              Average Sale: ₱{summary.avgSale?.toFixed(2) || 0}
             </div>
           </div>
         </section>
 
+        {/* Sales Record */}
         <section className="sales-record">
           <h3>Sales Record</h3>
           <div className="record-details">
-            <div className="record-amount">
-              ₱{summary?.totalSales || 0}
-            </div>
+            <div className="record-amount">₱{summary.totalSales || 0}</div>
             <div className="chart-container">
               <DashboardChart weeklySales={weeklySales} />
             </div>
           </div>
         </section>
 
+        {/* Popular Products */}
         <section className="popular-products">
           <h3>Popular Products</h3>
           <div className="product-list">
@@ -208,6 +213,7 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {/* Recent Orders */}
         <section className="recent-orders">
           <h3>Recent Orders</h3>
           <table>

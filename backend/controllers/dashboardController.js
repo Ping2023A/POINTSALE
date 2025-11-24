@@ -1,7 +1,7 @@
 // backend/controllers/dashboardController.js
-import Sales from "../models/Sales.js";
-import Orders from "../models/Orders.js";
-import Products from "../models/Products.js";
+import Sales from "../models/sale.model.js";
+import Orders from "../models/order.model.js";
+import Products from "../models/product.model.js";
 
 // Get all dashboard data
 export const getDashboardData = async (req, res) => {
