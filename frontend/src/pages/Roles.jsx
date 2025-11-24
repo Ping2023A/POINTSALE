@@ -9,50 +9,43 @@ const Roles = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [editData, setEditData] = useState({
-    name: "",
-    email: "",
-    role: "",
-    date: "",
-    phone: ""
-  });
-
+  const [editData, setEditData] = useState({ name: "", email: "", role: "", date: "", phone: "" });
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: "",
-    email: "",
-    role: "",
-    date: "",
-    phone: ""
-  });
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "", date: "", phone: "" });
 
   // Fetch users from backend
-  useEffect(() => {
-    fetch("http://localhost:5000/api/roles")
-      .then((res) => res.json())
-      .then((data) => setUsers(data))
-      .catch((err) => console.error("Failed to load roles:", err));
-  }, []);
-
-  const filteredUsers = users.filter((user) =>
-    Object.values(user)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
-
-  const handleDelete = async (index) => {
-    const user = users[index];
+  const fetchUsers = async () => {
     try {
-      await fetch(`http://localhost:5000/api/roles/${user._id}`, {
-        method: "DELETE"
-      });
-      setUsers(users.filter((_, i) => i !== index));
+      const res = await fetch("http://localhost:5000/api/roles");
+      const data = await res.json();
+      setUsers(data);
     } catch (err) {
-      console.error("Delete failed:", err);
+      console.error("Failed to load roles:", err);
     }
   };
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter((user) =>
+    Object.values(user).join(" ").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Delete user
+  const handleDelete = async (index) => {
+    const user = users[index];
+    try {
+      const res = await fetch(`http://localhost:5000/api/roles/${user._id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setUsers(users.filter((_, i) => i !== index));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete user");
+    }
+  };
+
+  // Edit user
   const handleEdit = (index) => {
     setEditingIndex(index);
     setEditData(users[index]);
@@ -74,22 +67,37 @@ const Roles = () => {
       setEditData({ name: "", email: "", role: "", date: "", phone: "" });
     } catch (err) {
       console.error("Update failed:", err);
+      alert("Failed to update user");
     }
   };
 
+  // Add new user
   const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.role || !newUser.date || !newUser.phone) {
+      alert("Please fill in all fields");
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:5000/api/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newUser)
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(errorData.message || "Failed to add user");
+        return;
+      }
+
       const created = await res.json();
-      setUsers((prev) => [...prev, created]);
+      setUsers((prev) => [created, ...prev]); // add new user at top
       setShowAddModal(false);
       setNewUser({ name: "", email: "", role: "", date: "", phone: "" });
     } catch (err) {
       console.error("Create failed:", err);
+      alert("Failed to connect to server");
     }
   };
 
@@ -98,12 +106,7 @@ const Roles = () => {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}>
         <div>
-          <div
-            className="nav-toggle"
-            onClick={() => setSidebarExpanded(!sidebarExpanded)}
-          >
-            ☰
-          </div>
+          <div className="nav-toggle" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</div>
           <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>
             🏠 {sidebarExpanded && <span>Dashboard</span>}
           </Link>
@@ -127,9 +130,7 @@ const Roles = () => {
           <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>
             ⚙️ {sidebarExpanded && <span>Settings</span>}
           </Link>
-          <Link to="/login" className="nav-icon">
-            🔓 {sidebarExpanded && <span>Sign Out</span>}
-          </Link>
+          <Link to="/login" className="nav-icon">🔓 {sidebarExpanded && <span>Sign Out</span>}</Link>
         </div>
       </aside>
 
@@ -138,18 +139,14 @@ const Roles = () => {
         <header className="top-bar">
           <div className="header-left">
             <img src={logo} alt="Sales Point Logo" className="header-logo" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <div className="top-icons">
-            <span className="user">John Doe Owner</span>
-            <button onClick={() => setShowAddModal(true)} className="add-btn">
-              + Add User
-            </button>
+            <div className="user-info">
+              <span className="user-name">John Doe</span>
+              <span className="user-role">Owner</span>
+            </div>
+            <button onClick={() => setShowAddModal(true)} className="add-btn">+ Add User</button>
           </div>
         </header>
 
@@ -182,9 +179,7 @@ const Roles = () => {
               ))}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                    No users found.
-                  </td>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>No users found.</td>
                 </tr>
               )}
             </tbody>
@@ -232,4 +227,3 @@ const Roles = () => {
 };
 
 export default Roles;
-
