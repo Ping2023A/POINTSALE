@@ -6,6 +6,8 @@ import cors from "cors";
 
 // Import routes
 import roleRoutes from "./routes/roles.routes.js";
+import salesRoutes from "./routes/sales.routes.js"; // ✅ Sales route
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.use(express.json());
 
 // Routes
 app.use("/api/roles", roleRoutes);
+app.use("/api/sales", salesRoutes); // ✅ Register sales API
+app.use("/api/dashboard", dashboardRoutes);
 
 // Health check route
 app.get("/", (req, res) => res.send("POS API Running"));
