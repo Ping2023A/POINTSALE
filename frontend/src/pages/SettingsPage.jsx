@@ -18,27 +18,48 @@ const SettingsPage = () => {
           >
             ☰
           </div>
-          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>
+          <Link
+            to="/dashboard"
+            className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}
+          >
             🏠 {sidebarExpanded && <span>Dashboard</span>}
           </Link>
-          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>
+          <Link
+            to="/roles"
+            className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}
+          >
             👥 {sidebarExpanded && <span>Roles</span>}
           </Link>
-          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>
+          <Link
+            to="/inventory"
+            className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}
+          >
             📦 {sidebarExpanded && <span>Inventory</span>}
           </Link>
-          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>
+          <Link
+            to="/order"
+            className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}
+          >
             🧾 {sidebarExpanded && <span>Order Entries</span>}
           </Link>
-          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>
+          <Link
+            to="/audit"
+            className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}
+          >
             🕵️ {sidebarExpanded && <span>Audit Logs</span>}
           </Link>
-          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>
+          <Link
+            to="/shift"
+            className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}
+          >
             📅 {sidebarExpanded && <span>Shift Board</span>}
           </Link>
         </div>
         <div>
-          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>
+          <Link
+            to="/settings"
+            className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}
+          >
             ⚙️ {sidebarExpanded && <span>Settings</span>}
           </Link>
           <Link to="/login" className="nav-icon">
@@ -59,92 +80,60 @@ const SettingsPage = () => {
         <section className="settings-section">
           <h2>Settings</h2>
 
-          {/* Business Info */}
+          {/* 1. User Accounts */}
           <div className="settings-card">
-            <h3>Business Information</h3>
-            <input type="text" placeholder="Store Name" />
-            <input type="text" placeholder="Contact Email" />
-            <input type="text" placeholder="Phone Number" />
-            <input type="text" placeholder="Tax/VAT %" />
-            <input type="text" placeholder="Currency (₱, $, €)" />
-            <button>Save Business Info</button>
+            <h3>User Accounts</h3>
+            <button>Add Cashier</button>
+            <button>Add Admin</button>
+            <input type="password" placeholder="Set Login PIN/Password" />
+            <button>Save User Settings</button>
           </div>
 
-          {/* Payment Methods */}
+          {/* 2. Payment Settings (Updated) */}
           <div className="settings-card">
-            <h3>Payment Methods</h3>
-            <label><input type="checkbox" /> Cash</label>
-            <label><input type="checkbox" /> GCash</label>
-            <label><input type="checkbox" /> Card</label>
+            <h3>Payment Summary</h3>
+
+            <div className="payment-summary">
+              <p><strong>Cash Payments:</strong> 120</p>
+              <p><strong>Card Payments:</strong> 85</p>
+              <p><strong>Mobile Wallet Payments:</strong> 64</p>
+            </div>
+
             <button>Save Payment Settings</button>
           </div>
 
-          {/* User & Role Management */}
+          {/* 4. Receipt Settings */}
           <div className="settings-card">
-            <h3>User & Role Management</h3>
-            <button>Manage Users</button>
-            <button>Manage Roles</button>
+            <h3>Receipt Settings</h3>
+            <input type="text" placeholder="Business Name" />
+            <input type="file" />
+            <input type="text" placeholder="Receipt Footer Message" />
+            <button>Save Receipt Settings</button>
           </div>
 
-          {/* Inventory Settings */}
+          {/* 5. Printer & Hardware */}
           <div className="settings-card">
-            <h3>Inventory Settings</h3>
-            <input type="number" placeholder="Low Stock Alert Threshold" />
-            <label><input type="checkbox" /> Enable Product Variants</label>
-            <button>Save Inventory Settings</button>
+            <h3>Printer & Hardware</h3>
+            <button>Connect Printer</button>
+            <label><input type="checkbox" /> Enable Cash Drawer</label>
+            <button>Test Drawer</button>
           </div>
 
-          {/* Shift Settings */}
+          {/* 6. Basic Taxes */}
           <div className="settings-card">
-            <h3>Shift & Employee Settings</h3>
-            <input type="number" placeholder="Default Shift Length (hours)" />
-            <input type="number" placeholder="Overtime Threshold (hours)" />
-            <button>Save Shift Settings</button>
+            <h3>Tax Settings</h3>
+            <input type="number" placeholder="Tax Rate 1 (%)" />
+            <input type="number" placeholder="Tax Rate 2 (%)" />
+            <button>Save Tax Settings</button>
           </div>
 
-          {/* Audit & Security */}
+          {/* 7. Store Info */}
           <div className="settings-card">
-            <h3>Audit & Security</h3>
-            <label><input type="checkbox" /> Enable Audit Logging</label>
-            <input type="number" placeholder="Log Retention (days)" />
-            <button>Export Logs</button>
-          </div>
-
-          {/* System Preferences */}
-          <div className="settings-card">
-            <h3>System Preferences</h3>
-            <label><input type="checkbox" /> Dark Mode</label>
-            <select>
-              <option>English</option>
-              <option>Filipino</option>
-            </select>
-            <input type="text" placeholder="Timezone" />
-            <button>Save Preferences</button>
-          </div>
-
-          {/* Integrations */}
-          <div className="settings-card">
-            <h3>Integrations</h3>
-            <input type="text" placeholder="Accounting API Key" />
-            <input type="text" placeholder="Payroll API Key" />
-            <button>Save Integrations</button>
-          </div>
-
-          {/* Backup & Restore */}
-          <div className="settings-card">
-            <h3>Backup & Restore</h3>
-            <button>Backup Database</button>
-            <button>Restore Database</button>
-            <input type="number" placeholder="Auto-backup Interval (days)" />
-          </div>
-
-          {/* Notifications */}
-          <div className="settings-card">
-            <h3>Notifications</h3>
-            <label><input type="checkbox" /> Email Alerts</label>
-            <label><input type="checkbox" /> SMS Alerts</label>
-            <input type="number" placeholder="Sales Alert Threshold (₱)" />
-            <button>Save Notifications</button>
+            <h3>Store Information</h3>
+            <input type="text" placeholder="Store Name" />
+            <input type="text" placeholder="Address" />
+            <input type="text" placeholder="Currency (₱, $, €)" />
+            <button>Save Store Info</button>
           </div>
         </section>
       </main>
