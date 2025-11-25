@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { /* Link, useLocation */ } from "react-router-dom";
 import "./roles.css";
 import logo from "../assets/salespoint-logo.png";
 
 const Roles = () => {
-  
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [editData, setEditData] = useState({ name: "", email: "", role: "", date: "", phone: "" });
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "", date: "", phone: "" });
+
+  // Confirmation state
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState(null);
 
   // Fetch users from backend
   const fetchUsers = async () => {
@@ -38,10 +39,16 @@ const Roles = () => {
       const res = await fetch(`http://localhost:5000/api/roles/${user._id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       setUsers(users.filter((_, i) => i !== index));
+      setConfirmDeleteIndex(null);
     } catch (err) {
       console.error(err);
       alert("Failed to delete user");
     }
+  };
+
+  // Show delete confirmation
+  const requestDelete = (index) => {
+    setConfirmDeleteIndex(index);
   };
 
   // Edit user
@@ -91,7 +98,7 @@ const Roles = () => {
       }
 
       const created = await res.json();
-      setUsers((prev) => [created, ...prev]); // add new user at top
+      setUsers((prev) => [created, ...prev]);
       setShowAddModal(false);
       setNewUser({ name: "", email: "", role: "", date: "", phone: "" });
     } catch (err) {
@@ -102,8 +109,6 @@ const Roles = () => {
 
   return (
     <div className="dashboard">
-      {/* Sidebar is centralized in Layout */}
-      {/* Main Content */}
       <main className="main-content">
         <header className="top-bar">
           <div className="header-left">
@@ -142,7 +147,15 @@ const Roles = () => {
                   <td>{user.phone}</td>
                   <td>
                     <button className="edit-btn" onClick={() => handleEdit(index)}>✏️</button>
-                    <button className="delete-btn" onClick={() => handleDelete(index)}>🗑️</button>
+                    {confirmDeleteIndex === index ? (
+                      <>
+                        <span style={{ color: "red", marginRight: "5px" }}>Confirm?</span>
+                        <button onClick={() => handleDelete(index)}>✔️</button>
+                        <button onClick={() => setConfirmDeleteIndex(null)}>❌</button>
+                      </>
+                    ) : (
+                      <button className="delete-btn" onClick={() => requestDelete(index)}>🗑️</button>
+                    )}
                   </td>
                 </tr>
               ))}
