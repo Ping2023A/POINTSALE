@@ -8,6 +8,7 @@ import ShiftSchedule from "./pages/shift";
 import AuditLogsPage from "./pages/AuditLogsPage";
 import Roles from "./pages/Roles";
 import SettingsPage from "./pages/SettingsPage";   // ✅ Import SettingsPage
+import Layout from "./Layout/layout";
 import "./App.css";
 
 function App() {
@@ -16,21 +17,21 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Default route redirects to dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-
-        {/* Auth routes */}
+        {/* Auth routes (no sidebar) */}
         <Route path="/login" element={<Auth />} />
         <Route path="/signup" element={<Auth />} />
 
-        {/* Main pages */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/order" element={<OrderPage />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/shift" element={<ShiftSchedule />} />
-        <Route path="/audit" element={<AuditLogsPage />} />
-        <Route path="/roles" element={<Roles />} />
-        <Route path="/settings" element={<SettingsPage />} /> {/* ✅ Settings route */}
+        {/* Main app wrapped with shared Layout (contains sidebar) */}
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="order" element={<OrderPage />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="shift" element={<ShiftSchedule />} />
+          <Route path="audit" element={<AuditLogsPage />} />
+          <Route path="roles" element={<Roles />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/dashboard" />} />

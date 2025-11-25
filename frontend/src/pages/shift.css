@@ -1,18 +1,15 @@
 /* shift.css */
 
-/* General layout */
-body, html {
-margin: 0;
-font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-background-color: #ffffff; /* Light background */
-color: #000000; /* Dark text */
-overflow-x: hidden; /* Prevent horizontal overflow */
-}
-
-.dashboard-layout {
-display: flex;
-min-height: 100vh;
-overflow: hidden; /* Ensure no content overflows */
+/* Page-scoped layout (avoid global overrides) */
+.shift-page {
+	margin: 0;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	background-color: #ffffff; /* Light background */
+	color: #000000; /* Dark text */
+	overflow-x: hidden; /* Prevent horizontal overflow */
+	display: block;
+	padding: 6px 0;
+	box-sizing: border-box;
 }
 
 /***** Sidebar *****/
