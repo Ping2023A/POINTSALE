@@ -1,33 +1,8 @@
-/* Dashboard Layout */
 .dashboard {
   display: flex;
   min-height: 100vh;
   background-color: #f9f9f9;
 }
-
-/* Sidebar */
-.sidebar {
-  width: 60px;
-  background-color: #1c1c1c;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 10px 0;
-  transition: width 0.3s ease;
-}
-
-.sidebar.expanded {
-  width: 200px;
-}
-
-.nav-icon {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
-}
-
-/* Sidebar is centralized in Layout; per-page sidebar styles removed */
 
 .header-left {
   display: flex;
@@ -47,7 +22,6 @@
   width: 250px;
 }
 
-/* User info (John Doe + Owner) */
 .user-info {
   display: flex;
   flex-direction: column;
@@ -66,7 +40,6 @@
   margin-top: -2px;
 }
 
-/* Add User Button */
 .add-btn {
   background: #4a90e2;
   border: none;
@@ -83,7 +56,6 @@
   transform: translateY(-2px);
 }
 
-/* Roles Section */
 .roles-section h2 {
   margin-bottom: 15px;
 }
@@ -107,7 +79,6 @@
   background-color: #f0f0f0;
 }
 
-/* Action Buttons */
 .edit-btn,
 .delete-btn {
   margin-right: 5px;
@@ -115,7 +86,6 @@
   border: none;
   background: transparent;
   font-size: 16px;
-  transition: 0.2s ease;
 }
 
 .edit-btn:hover {
@@ -126,7 +96,6 @@
   color: #e74c3c;
 }
 
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
