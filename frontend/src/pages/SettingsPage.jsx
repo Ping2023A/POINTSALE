@@ -51,7 +51,6 @@ const SettingsPage = () => {
         </header>
 
         <section className="settings-section">
-          <h2>Settings</h2>
 
           {/* User Accounts */}
           <div className="settings-card">
@@ -68,7 +67,7 @@ const SettingsPage = () => {
               disabled={saving}
               onClick={() => saveSetting("userPin", settings.userPin)}
             >
-              Save User Settings
+              Save
             </button>
           </div>
 
@@ -80,9 +79,9 @@ const SettingsPage = () => {
             <p>Mobile: {settings.mobilePayments || 0}</p>
           </div>
 
-          {/* Receipt Settings */}
+          {/* Receipt */}
           <div className="settings-card">
-            <h3>Receipt Settings</h3>
+            <h3>Receipt</h3>
             <input
               type="text"
               placeholder="Business Name"
@@ -106,13 +105,13 @@ const SettingsPage = () => {
                 await saveSetting("receiptFooter", settings.receiptFooter);
               }}
             >
-              Save Receipt Settings
+              Save
             </button>
           </div>
 
-          {/* Printer and Drawer */}
+          {/* Printer & Drawer */}
           <div className="settings-card">
-            <h3>Printer and Drawer</h3>
+            <h3>Printer & Drawer</h3>
             <label>
               <input
                 type="checkbox"
@@ -126,7 +125,6 @@ const SettingsPage = () => {
               />{" "}
               Enable Cash Drawer
             </label>
-            <br />
             <label>
               <input
                 type="checkbox"
@@ -140,7 +138,6 @@ const SettingsPage = () => {
               />{" "}
               Enable Printer Receipt
             </label>
-            <br />
             <button
               disabled={saving}
               onClick={async () => {
@@ -151,13 +148,13 @@ const SettingsPage = () => {
                 );
               }}
             >
-              Save Printer & Drawer Settings
+              Save
             </button>
           </div>
 
-          {/* Tax Settings */}
+          {/* Tax */}
           <div className="settings-card">
-            <h3>Tax Settings</h3>
+            <h3>Tax</h3>
             <input
               type="number"
               placeholder="Tax Rate 1 (%)"
@@ -181,13 +178,13 @@ const SettingsPage = () => {
                 await saveSetting("taxRate2", settings.taxRate2);
               }}
             >
-              Save Tax Settings
+              Save
             </button>
           </div>
 
           {/* Store Info */}
           <div className="settings-card">
-            <h3>Store Information</h3>
+            <h3>Store Info</h3>
             <input
               type="text"
               placeholder="Store Name"
@@ -220,9 +217,10 @@ const SettingsPage = () => {
                 await saveSetting("storeCurrency", settings.storeCurrency);
               }}
             >
-              Save Store Info
+              Save
             </button>
           </div>
+
         </section>
       </main>
     </div>
