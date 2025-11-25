@@ -1,15 +1,47 @@
-import React, { useState } from "react";
-import { /* Link, useLocation */ } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./settings.css";
 import logo from "../assets/salespoint-logo.png";
 
+const API_URL = "http://localhost:5000/api/settings";
+
 const SettingsPage = () => {
-  
+  const [settings, setSettings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await axios.get(API_URL);
+        const obj = {};
+        res.data.forEach((s) => (obj[s.key] = s.value));
+        setSettings(obj);
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const saveSetting = async (key, value) => {
+    try {
+      setSaving(true);
+      await axios.post(API_URL, { key, value });
+      setSettings((prev) => ({ ...prev, [key]: value }));
+    } catch (err) {
+      console.error("Failed to save setting:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div>Loading settings...</div>;
 
   return (
     <div className="dashboard">
-      {/* Sidebar is centralized in Layout */}
-      {/* Main Content */}
       <main className="main-content">
         <header className="top-bar">
           <div className="logo-container">
@@ -21,60 +53,175 @@ const SettingsPage = () => {
         <section className="settings-section">
           <h2>Settings</h2>
 
-          {/* 1. User Accounts */}
+          {/* User Accounts */}
           <div className="settings-card">
             <h3>User Accounts</h3>
-            <button>Add Cashier</button>
-            <button>Add Admin</button>
-            <input type="password" placeholder="Set Login PIN/Password" />
-            <button>Save User Settings</button>
+            <input
+              type="password"
+              placeholder="Set Login PIN/Password"
+              value={settings.userPin || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, userPin: e.target.value }))
+              }
+            />
+            <button
+              disabled={saving}
+              onClick={() => saveSetting("userPin", settings.userPin)}
+            >
+              Save User Settings
+            </button>
           </div>
 
-          {/* 2. Payment Settings (Updated) */}
+          {/* Payment Summary */}
           <div className="settings-card">
             <h3>Payment Summary</h3>
-
-            <div className="payment-summary">
-              <p><strong>Cash Payments:</strong> 120</p>
-              <p><strong>Card Payments:</strong> 85</p>
-              <p><strong>Mobile Wallet Payments:</strong> 64</p>
-            </div>
-
-            <button>Save Payment Settings</button>
+            <p>Cash: {settings.cashPayments || 0}</p>
+            <p>Card: {settings.cardPayments || 0}</p>
+            <p>Mobile: {settings.mobilePayments || 0}</p>
           </div>
 
-          {/* 4. Receipt Settings */}
+          {/* Receipt Settings */}
           <div className="settings-card">
             <h3>Receipt Settings</h3>
-            <input type="text" placeholder="Business Name" />
-            <input type="file" />
-            <input type="text" placeholder="Receipt Footer Message" />
-            <button>Save Receipt Settings</button>
+            <input
+              type="text"
+              placeholder="Business Name"
+              value={settings.businessName || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, businessName: e.target.value }))
+              }
+            />
+            <input
+              type="text"
+              placeholder="Receipt Footer"
+              value={settings.receiptFooter || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, receiptFooter: e.target.value }))
+              }
+            />
+            <button
+              disabled={saving}
+              onClick={async () => {
+                await saveSetting("businessName", settings.businessName);
+                await saveSetting("receiptFooter", settings.receiptFooter);
+              }}
+            >
+              Save Receipt Settings
+            </button>
           </div>
 
-          {/* 5. Printer & Hardware */}
+          {/* Printer and Drawer */}
           <div className="settings-card">
-            <h3>Printer & Hardware</h3>
-            <button>Connect Printer</button>
-            <label><input type="checkbox" /> Enable Cash Drawer</label>
-            <button>Test Drawer</button>
+            <h3>Printer and Drawer</h3>
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.enableCashDrawer || false}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    enableCashDrawer: e.target.checked,
+                  }))
+                }
+              />{" "}
+              Enable Cash Drawer
+            </label>
+            <br />
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.enablePrinterReceipt || false}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    enablePrinterReceipt: e.target.checked,
+                  }))
+                }
+              />{" "}
+              Enable Printer Receipt
+            </label>
+            <br />
+            <button
+              disabled={saving}
+              onClick={async () => {
+                await saveSetting("enableCashDrawer", settings.enableCashDrawer);
+                await saveSetting(
+                  "enablePrinterReceipt",
+                  settings.enablePrinterReceipt
+                );
+              }}
+            >
+              Save Printer & Drawer Settings
+            </button>
           </div>
 
-          {/* 6. Basic Taxes */}
+          {/* Tax Settings */}
           <div className="settings-card">
             <h3>Tax Settings</h3>
-            <input type="number" placeholder="Tax Rate 1 (%)" />
-            <input type="number" placeholder="Tax Rate 2 (%)" />
-            <button>Save Tax Settings</button>
+            <input
+              type="number"
+              placeholder="Tax Rate 1 (%)"
+              value={settings.taxRate1 || 0}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, taxRate1: Number(e.target.value) }))
+              }
+            />
+            <input
+              type="number"
+              placeholder="Tax Rate 2 (%)"
+              value={settings.taxRate2 || 0}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, taxRate2: Number(e.target.value) }))
+              }
+            />
+            <button
+              disabled={saving}
+              onClick={async () => {
+                await saveSetting("taxRate1", settings.taxRate1);
+                await saveSetting("taxRate2", settings.taxRate2);
+              }}
+            >
+              Save Tax Settings
+            </button>
           </div>
 
-          {/* 7. Store Info */}
+          {/* Store Info */}
           <div className="settings-card">
             <h3>Store Information</h3>
-            <input type="text" placeholder="Store Name" />
-            <input type="text" placeholder="Address" />
-            <input type="text" placeholder="Currency (₱, $, €)" />
-            <button>Save Store Info</button>
+            <input
+              type="text"
+              placeholder="Store Name"
+              value={settings.storeName || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, storeName: e.target.value }))
+              }
+            />
+            <input
+              type="text"
+              placeholder="Address"
+              value={settings.storeAddress || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, storeAddress: e.target.value }))
+              }
+            />
+            <input
+              type="text"
+              placeholder="Currency"
+              value={settings.storeCurrency || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, storeCurrency: e.target.value }))
+              }
+            />
+            <button
+              disabled={saving}
+              onClick={async () => {
+                await saveSetting("storeName", settings.storeName);
+                await saveSetting("storeAddress", settings.storeAddress);
+                await saveSetting("storeCurrency", settings.storeCurrency);
+              }}
+            >
+              Save Store Info
+            </button>
           </div>
         </section>
       </main>
