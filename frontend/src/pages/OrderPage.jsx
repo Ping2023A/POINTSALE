@@ -1,30 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./order.css";
 import logo from "../assets/salespoint-logo.png";
 
+const API_URL = "http://localhost:5000/api/menu";
+
 export default function OrderPage() {
-  const [categories, setCategories] = useState([
-    "All",
-    "Hot Drinks",
-    "Cold Drinks",
-    "Food",
-    "Snacks",
-  ]);
-
-  const [items, setItems] = useState([
-    { id: 1, name: "Americano", price: 50, category: "Hot Drinks" },
-    { id: 2, name: "Frappuccino", price: 165, category: "Cold Drinks" },
-    {
-      id: 3,
-      name: "Burger",
-      price: 95,
-      category: "Food",
-      variants: ["Small", "Medium", "Large"],
-    },
-    { id: 4, name: "Donut", price: 35, category: "Snacks" },
-    { id: 5, name: "Hot Chocolate", price: 70, category: "Hot Drinks" },
-  ]);
-
+  const [categories, setCategories] = useState(["All"]);
+  const [items, setItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cart, setCart] = useState([]);
   const [discount, setDiscount] = useState(0);
@@ -38,13 +21,30 @@ export default function OrderPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [newItemPrice, setNewItemPrice] = useState("");
-  const [newItemCategory, setNewItemCategory] = useState(categories[1] || "");
+  const [newItemCategory, setNewItemCategory] = useState("");
   const [newItemVariants, setNewItemVariants] = useState("");
+
+  // Fetch categories and items from backend on load
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const catRes = await axios.get(`${API_URL}/categories`);
+        setCategories(["All", ...catRes.data.map(c => c.name)]);
+
+        const itemRes = await axios.get(`${API_URL}/items`);
+        setItems(itemRes.data);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to fetch menu data");
+      }
+    };
+    fetchData();
+  }, []);
 
   const filteredItems =
     selectedCategory === "All"
       ? items
-      : items.filter((item) => item.category === selectedCategory);
+      : items.filter(item => item.category === selectedCategory);
 
   const openItemModal = (item) => {
     setSelectedItem(item);
@@ -55,22 +55,20 @@ export default function OrderPage() {
   const addToCart = () => {
     if (!selectedItem) return;
 
-    const itemKey = selectedItem.id + (selectedVariant || "");
+    const itemKey = selectedItem._id + (selectedVariant || "");
 
-    setCart((prev) => {
-      const existing = prev.find((i) => i.key === itemKey);
-
+    setCart(prev => {
+      const existing = prev.find(i => i.key === itemKey);
       if (existing) {
-        return prev.map((i) =>
+        return prev.map(i =>
           i.key === itemKey ? { ...i, qty: i.qty + 1 } : i
         );
       }
-
       return [
         ...prev,
         {
           key: itemKey,
-          id: selectedItem.id,
+          id: selectedItem._id,
           name: selectedItem.name,
           price: selectedItem.price,
           variant: selectedVariant,
@@ -83,10 +81,10 @@ export default function OrderPage() {
   };
 
   const updateQty = (key, delta) => {
-    setCart((prev) =>
+    setCart(prev =>
       prev
-        .map((i) => (i.key === key ? { ...i, qty: i.qty + delta } : i))
-      .filter((i) => i.qty > 0)
+        .map(i => (i.key === key ? { ...i, qty: i.qty + delta } : i))
+        .filter(i => i.qty > 0)
     );
   };
 
@@ -98,52 +96,75 @@ export default function OrderPage() {
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   const finalTotal = Math.max(total - discount, 0);
 
-  const addCategory = () => {
+  /* -------------------------
+     CATEGORY FUNCTIONS
+  ------------------------- */
+  const addCategory = async () => {
     if (!newCategoryName.trim() || categories.includes(newCategoryName)) return;
-    setCategories([...categories, newCategoryName]);
-    setNewCategoryName("");
-  };
 
-  const deleteCategory = (cat) => {
-    if (cat === "All") return;
-
-    if (
-      window.confirm(
-        `Delete category "${cat}"? Items in this category will also be deleted.`
-      )
-    ) {
-      setCategories(categories.filter((c) => c !== cat));
-      setItems(items.filter((i) => i.category !== cat));
-
-      if (selectedCategory === cat) setSelectedCategory("All");
+    try {
+      const res = await axios.post(`${API_URL}/categories`, { name: newCategoryName });
+      setCategories([...categories, res.data.name]);
+      setNewCategoryName("");
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to add category");
     }
   };
 
-  const addItem = () => {
+  const deleteCategory = async (cat) => {
+    if (cat === "All") return;
+    if (!window.confirm(`Delete category "${cat}"? Items in this category will also be deleted.`)) return;
+
+    try {
+      await axios.delete(`${API_URL}/categories/${cat}`);
+      setCategories(categories.filter(c => c !== cat));
+      setItems(items.filter(i => i.category !== cat));
+      if (selectedCategory === cat) setSelectedCategory("All");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete category");
+    }
+  };
+
+  /* -------------------------
+     ITEM FUNCTIONS
+  ------------------------- */
+  const addItem = async () => {
     if (!newItemName.trim() || !newItemPrice || !newItemCategory) return;
 
     const variantsArray = newItemVariants
-      ? newItemVariants.split(",").map((v) => v.trim())
+      ? newItemVariants.split(",").map(v => v.trim())
       : [];
 
-    const newItem = {
-      id: Date.now(),
+    const newItemData = {
       name: newItemName,
       price: parseFloat(newItemPrice),
       category: newItemCategory,
       variants: variantsArray.length ? variantsArray : undefined,
     };
 
-    setItems([...items, newItem]);
-    setNewItemName("");
-    setNewItemPrice("");
-    setNewItemCategory(categories[1] || "");
-    setNewItemVariants("");
+    try {
+      const res = await axios.post(`${API_URL}/items`, newItemData);
+      setItems([...items, res.data]);
+      setNewItemName("");
+      setNewItemPrice("");
+      setNewItemCategory(categories[1] || "");
+      setNewItemVariants("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add item");
+    }
   };
 
-  const deleteItem = (id) => {
-    if (window.confirm("Delete this item?")) {
-      setItems(items.filter((i) => i.id !== id));
+  const deleteItem = async (id) => {
+    if (!window.confirm("Delete this item?")) return;
+    try {
+      await axios.delete(`${API_URL}/items/${id}`);
+      setItems(items.filter(i => i._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete item");
     }
   };
 
@@ -155,14 +176,12 @@ export default function OrderPage() {
           <div className="logo-container-modern">
             <img src={logo} alt="Logo" className="logo-modern" />
           </div>
-
           <input type="text" placeholder="Search..." />
-
           <div className="user-profile-modern">John Doe • Owner</div>
         </div>
 
         <div className="category-tabs-modern">
-          {categories.map((cat) => (
+          {categories.map(cat => (
             <button
               key={cat}
               className={cat === selectedCategory ? "active" : ""}
@@ -174,9 +193,9 @@ export default function OrderPage() {
         </div>
 
         <div className="item-grid-modern">
-          {filteredItems.map((item) => (
+          {filteredItems.map(item => (
             <div
-              key={item.id}
+              key={item._id}
               className="item-card-modern"
               onClick={() => openItemModal(item)}
             >
@@ -194,11 +213,11 @@ export default function OrderPage() {
         </button>
       </div>
 
-      {/* RIGHT PANEL — CART (POS BLOCK STYLE) */}
+      {/* RIGHT PANEL — CART */}
       <div className="right-panel-modern">
         <div className="cart-header-modern">
           <div className="cart-title-modern">Order Summary</div>
-          <div className="cart-count-modern">{cart.length} item{cart.length !== 1 ? 's' : ''}</div>
+          <div className="cart-count-modern">{cart.length} item{cart.length !== 1 ? "s" : ""}</div>
         </div>
 
         <div className="cart-content-modern">
@@ -206,18 +225,15 @@ export default function OrderPage() {
             <div className="empty-cart-modern">No items added</div>
           ) : (
             <ul className="cart-list-modern">
-              {cart.map((item) => (
+              {cart.map(item => (
                 <li key={item.key} className="cart-item-modern">
                   <div className="cart-item-top">
                     <div className="cart-item-name">
                       {item.name}{" "}
-                      {item.variant && (
-                        <span className="variant-tag-modern">{item.variant}</span>
-                      )}
+                      {item.variant && <span className="variant-tag-modern">{item.variant}</span>}
                     </div>
                     <div className="cart-subtotal-modern">₱{item.price * item.qty}</div>
                   </div>
-
                   <div className="qty-controls-modern">
                     <button onClick={() => updateQty(item.key, -1)}>-</button>
                     <span className="qty-count-modern">{item.qty}</span>
@@ -239,13 +255,12 @@ export default function OrderPage() {
               onChange={(e) => setDiscount(Number(e.target.value))}
             />
           </div>
-
           <div className="total-section-modern">Total: ₱{finalTotal}</div>
 
           <div className="payment-methods-modern">
             <label>Payment Method</label>
             <div className="payment-buttons-modern">
-              {["GCash", "Cash", "Card"].map((m) => (
+              {["GCash", "Cash", "Card"].map(m => (
                 <button
                   key={m}
                   className={paymentMethod === m ? "selected" : ""}
@@ -258,8 +273,12 @@ export default function OrderPage() {
           </div>
 
           <div className="action-buttons-modern">
-            <button className="primary" onClick={() => alert("Receipt printed!")}>Print Receipt</button>
-            <button onClick={clearCart} className="secondary">Clear</button>
+            <button className="primary" onClick={() => alert("Receipt printed!")}>
+              Print Receipt
+            </button>
+            <button onClick={clearCart} className="secondary">
+              Clear
+            </button>
           </div>
         </div>
       </div>
@@ -272,31 +291,15 @@ export default function OrderPage() {
             <p>₱{selectedItem.price}</p>
 
             {selectedItem.variants && (
-              <select
-                value={selectedVariant}
-                onChange={(e) => setSelectedVariant(e.target.value)}
-              >
-                {selectedItem.variants.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
+              <select value={selectedVariant} onChange={(e) => setSelectedVariant(e.target.value)}>
+                {selectedItem.variants.map(v => (
+                  <option key={v} value={v}>{v}</option>
                 ))}
               </select>
             )}
 
-            <button
-              onClick={addToCart}
-              className="add-to-cart-btn-modern"
-            >
-              Add to Cart
-            </button>
-
-            <button
-              onClick={() => setShowItemModal(false)}
-              className="cancel-btn-modern"
-            >
-              Cancel
-            </button>
+            <button onClick={addToCart} className="add-to-cart-btn-modern">Add to Cart</button>
+            <button onClick={() => setShowItemModal(false)} className="cancel-btn-modern">Cancel</button>
           </div>
         </div>
       )}
@@ -318,27 +321,18 @@ export default function OrderPage() {
                 />
                 <button onClick={addCategory}>Add</button>
               </div>
-
               <ul>
-                {categories
-                  .filter((c) => c !== "All")
-                  .map((cat) => (
-                    <li key={cat}>
-                      {cat}
-                      <button
-                        className="delete-btn-modern"
-                        onClick={() => deleteCategory(cat)}
-                      >
-                        Delete
-                      </button>
-                    </li>
-                  ))}
+                {categories.filter(c => c !== "All").map(cat => (
+                  <li key={cat}>
+                    {cat}
+                    <button className="delete-btn-modern" onClick={() => deleteCategory(cat)}>Delete</button>
+                  </li>
+                ))}
               </ul>
             </div>
 
             <div className="manage-section-modern">
               <h3>Items</h3>
-
               <div className="add-form-modern">
                 <input
                   type="text"
@@ -346,57 +340,38 @@ export default function OrderPage() {
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
                 />
-
                 <input
                   type="number"
                   placeholder="Price"
                   value={newItemPrice}
                   onChange={(e) => setNewItemPrice(e.target.value)}
                 />
-
-                <select
-                  value={newItemCategory}
-                  onChange={(e) => setNewItemCategory(e.target.value)}
-                >
-                  {categories
-                    .filter((c) => c !== "All")
-                    .map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
+                <select value={newItemCategory} onChange={(e) => setNewItemCategory(e.target.value)}>
+                  {categories.filter(c => c !== "All").map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
-
                 <input
                   type="text"
                   placeholder="Variants (comma separated)"
                   value={newItemVariants}
                   onChange={(e) => setNewItemVariants(e.target.value)}
                 />
-
                 <button onClick={addItem}>Add Item</button>
               </div>
 
               <ul>
-                {items.map((item) => (
-                  <li key={item.id}>
+                {items.map(item => (
+                  <li key={item._id}>
                     {item.name} - ₱{item.price} ({item.category})
                     {item.variants && ` [${item.variants.join(", ")}]`}
-                    <button
-                      className="delete-btn-modern"
-                      onClick={() => deleteItem(item.id)}
-                    >
-                      Delete
-                    </button>
+                    <button className="delete-btn-modern" onClick={() => deleteItem(item._id)}>Delete</button>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <button
-              onClick={() => setShowManageMenuModal(false)}
-              className="close-modal-btn-modern"
-            >
+            <button onClick={() => setShowManageMenuModal(false)} className="close-modal-btn-modern">
               Close
             </button>
           </div>
