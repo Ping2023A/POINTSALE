@@ -10,6 +10,8 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   sendEmailVerification,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 
 function Auth() {
@@ -37,7 +39,8 @@ function Auth() {
           return;
         }
 
-        navigate("/order");
+        // Redirect to dashboard
+        navigate("/dashboard");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log("Signed up:", userCredential.user);
@@ -49,10 +52,23 @@ function Auth() {
         await sendEmailVerification(userCredential.user);
         alert("Verification email sent. Please check your inbox to activate your account.");
         navigate("/login");
-        return;
       }
     } catch (error) {
       console.error("Auth error:", error.message);
+      alert(error.message);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      console.log("Google login:", result.user);
+
+      // Redirect after Google login
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Google login error:", error.message);
       alert(error.message);
     }
   }
@@ -143,7 +159,7 @@ function Auth() {
         </div>
 
         <div className="social-buttons">
-          <button type="button" className="social-btn google">
+          <button type="button" className="social-btn google" onClick={handleGoogleLogin}>
             <img src={googleIcon} alt="Google" />
             Google
           </button>
