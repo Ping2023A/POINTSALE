@@ -1,10 +1,10 @@
 /* MAIN CONTENT */
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 20px 20px 40px 20px;
   background: #f9f9f9;
   overflow-y: auto;
-  height: 100vh; /* make main content scrollable */
+  /* avoid forcing a separate viewport height here to prevent nested scrollbars */
 }
 
 /* TOP BAR */
@@ -27,27 +27,24 @@
 
 /* SETTINGS SECTION GRID */
 .settings-section {
-  margin-top: 25px;
+  margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  gap: 25px;
-  max-height: calc(100vh - 80px); /* account for top-bar */
-  overflow-y: auto;
-  padding-right: 5px; /* prevent content from touching scrollbar */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  padding-right: 6px; /* prevent content from touching scrollbar */
 }
 
 /* SETTINGS CARD */
 .settings-card {
   background: #ffffff;
-  padding: 25px;
+  padding: 20px;
   border-radius: 10px;
-  border: 1px solid #000; /* black border */
-  box-shadow: 0 0 0 3px #fff inset, 0 3px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ddd;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  max-height: 500px; /* optional, can adjust */
-  overflow-y: auto; /* scroll inside card if content is long */
+  /* allow cards to expand naturally; avoid inner scrolling */
 }
 
 /* CARD TITLE */

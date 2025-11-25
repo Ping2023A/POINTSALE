@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { /* Link, useLocation */ } from 'react-router-dom';
 import './inventory.css';
 import logo from '../assets/salespoint-logo.png';
 
 const Inventory = () => {
-  const location = useLocation();
+  
   const categories = ["Hot Drinks", "Cold Drinks", "Food", "Snacks"];
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  
   const [newItem, setNewItem] = useState({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
 
   // Sorting & filtering state
@@ -245,23 +245,7 @@ const Inventory = () => {
 
   return (
     <div className="dashboard">
-      {/* Sidebar */}
-      <aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}>
-        <div>
-          <div className="nav-toggle" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</div>
-          <Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>🏠 {sidebarExpanded && <span>Dashboard</span>}</Link>
-          <Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>👥 {sidebarExpanded && <span>Roles</span>}</Link>
-          <Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>📦 {sidebarExpanded && <span>Inventory</span>}</Link>
-          <Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>🧾 {sidebarExpanded && <span>Order Entries</span>}</Link>
-          <Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>🕵️ {sidebarExpanded && <span>Audit Logs</span>}</Link>
-          <Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>📅 {sidebarExpanded && <span>Shift Board</span>}</Link>
-        </div>
-        <div>
-          <Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>⚙️ {sidebarExpanded && <span>Settings</span>}</Link>
-          <Link to="/login" className="nav-icon">🔓 {sidebarExpanded && <span>Sign Out</span>}</Link>
-        </div>
-      </aside>
-
+      {/* Sidebar is centralized in Layout */}
       {/* Main Content */}
       <main className="main-content">
         <header className="top-bar">

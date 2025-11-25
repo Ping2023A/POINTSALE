@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "../pages/shift.css";
-import { Link, useLocation } from "react-router-dom";
+// sidebar is provided by Layout
 import logo from '../assets/salespoint-logo.png';
 
 export default function ShiftSchedule() {
-const location = useLocation();
-const [sidebarExpanded, setSidebarExpanded] = useState(true);
 const [searchTerm, setSearchTerm] = useState('');
 
 // Week navigation
@@ -95,20 +93,11 @@ default: return "red";
 }
 };
 
-return ( <div className="dashboard-layout">
-{/* Sidebar */}
-<aside className={`sidebar ${sidebarExpanded ? "expanded" : ""}`}> <div>
-<div className="nav-toggle" onClick={() => setSidebarExpanded(!sidebarExpanded)}>☰</div>
-<Link to="/dashboard" className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}>🏠 {sidebarExpanded && <span>Dashboard</span>} </Link>
-<Link to="/roles" className={`nav-icon ${location.pathname === "/roles" ? "active" : ""}`}>👥 {sidebarExpanded && <span>Roles</span>} </Link>
-<Link to="/inventory" className={`nav-icon ${location.pathname === "/inventory" ? "active" : ""}`}>📦 {sidebarExpanded && <span>Inventory</span>} </Link>
-<Link to="/order" className={`nav-icon ${location.pathname === "/order" ? "active" : ""}`}>🧾 {sidebarExpanded && <span>Order Entries</span>} </Link>
-<Link to="/audit" className={`nav-icon ${location.pathname === "/audit" ? "active" : ""}`}>🕵️ {sidebarExpanded && <span>Audit Logs</span>} </Link>
-<Link to="/shift" className={`nav-icon ${location.pathname === "/shift" ? "active" : ""}`}>📅 {sidebarExpanded && <span>Shift Board</span>} </Link> </div> <div>
-<Link to="/settings" className={`nav-icon ${location.pathname === "/settings" ? "active" : ""}`}>⚙️ {sidebarExpanded && <span>Settings</span>} </Link> <Link to="/login" className="nav-icon">🔓 {sidebarExpanded && <span>Sign Out</span>} </Link> </div> </aside>
-
-  {/* Main */}
-  <main className="shift-page-wrapper" style={{ overflowX: 'hidden' }}>
+  return (
+    <div className="shift-page">
+      {/* Sidebar is centralized in Layout */}
+      {/* Main */}
+      <main className="shift-page-wrapper" style={{ overflowX: 'hidden' }}>
     <header className="top-bar">
       <div className="logo-container"><img src={logo} alt="Logo" className="logo" /></div>
       <input type="text" placeholder="Search employees..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
