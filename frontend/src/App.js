@@ -7,7 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import ShiftSchedule from "./pages/shift";
 import AuditLogsPage from "./pages/AuditLogsPage";
 import Roles from "./pages/Roles";
-import SettingsPage from "./pages/SettingsPage";   // ✅ Import SettingsPage
+import SettingsPage from "./pages/SettingsPage";
 import Layout from "./Layout/layout";
 import "./App.css";
 
@@ -23,7 +23,9 @@ function App() {
 
         {/* Main app wrapped with shared Layout (contains sidebar) */}
         <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          {/* Redirect root to login page instead of dashboard */}
+          <Route index element={<Navigate to="/login" replace />} />
+          
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="order" element={<OrderPage />} />
           <Route path="inventory" element={<Inventory />} />
@@ -34,7 +36,7 @@ function App() {
         </Route>
 
         {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
