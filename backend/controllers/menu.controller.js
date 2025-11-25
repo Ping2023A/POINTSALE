@@ -1,0 +1,122 @@
+// backend/controllers/menu.controller.js
+
+import Item from "../models/item.model.js";
+import Category from "../models/category.model.js";
+
+/* ===========================
+   CATEGORY CONTROLLERS
+=========================== */
+
+// @desc   Get all categories
+// @route  GET /api/menu/categories
+export const getCategories = async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ message: "Failed to load categories", error });
+  }
+};
+
+// @desc   Add a new category
+// @route  POST /api/menu/categories
+export const addCategory = async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const exists = await Category.findOne({ name: name.trim() });
+    if (exists) {
+      return res.status(400).json({ message: "Category already exists" });
+    }
+
+    const newCategory = new Category({ name: name.trim() });
+    await newCategory.save();
+
+    res.status(201).json(newCategory);
+  } catch (error) {
+    console.error("Error adding category:", error);
+    res.status(500).json({ message: "Failed to add category", error });
+  }
+};
+
+// @desc   Delete category and all items under it
+// @route  DELETE /api/menu/categories/:name
+export const deleteCategory = async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    if (!name) return res.status(400).json({ message: "Category name is required" });
+
+    await Category.deleteOne({ name });
+    await Item.deleteMany({ category: name });
+
+    res.status(200).json({ message: `Category "${name}" and its items deleted` });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    res.status(500).json({ message: "Failed to delete category", error });
+  }
+};
+
+/* ===========================
+   ITEM CONTROLLERS
+=========================== */
+
+// @desc   Get all menu items
+// @route  GET /api/menu/items
+export const getItems = async (req, res) => {
+  try {
+    const items = await Item.find().sort({ name: 1 });
+    res.status(200).json(items);
+  } catch (error) {
+    console.error("Error fetching items:", error);
+    res.status(500).json({ message: "Failed to load items", error });
+  }
+};
+
+// @desc   Add a new menu item
+// @route  POST /api/menu/items
+export const addItem = async (req, res) => {
+  try {
+    const { name, price, category, variants } = req.body;
+
+    if (!name || !price || !category) {
+      return res.status(400).json({ message: "Name, price, and category are required" });
+    }
+
+    const newItem = new Item({
+      name: name.trim(),
+      price,
+      category: category.trim(),
+      variants: variants?.length ? variants.map(v => v.trim()) : undefined,
+    });
+
+    await newItem.save();
+    res.status(201).json(newItem);
+  } catch (error) {
+    console.error("Error adding item:", error);
+    res.status(500).json({ message: "Failed to add item", error });
+  }
+};
+
+// @desc   Delete a menu item
+// @route  DELETE /api/menu/items/:id
+export const deleteItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).json({ message: "Item ID is required" });
+
+    const deleted = await Item.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ message: "Item not found" });
+
+    res.status(200).json({ message: "Item deleted" });
+  } catch (error) {
+    console.error("Error deleting item:", error);
+    res.status(500).json({ message: "Failed to delete item", error });
+  }
+};
