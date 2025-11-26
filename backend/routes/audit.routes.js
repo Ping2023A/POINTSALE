@@ -1,8 +1,9 @@
 import { Router } from "express";
+import { getLogs, createLog } from "../controllers/audit.controller.js";
 
 const router = Router();
 
-// Define routes here, for example:
-router.get("/", (req, res) => res.send("Audit route works"));
+router.get('/', getLogs);
+router.post('/', createLog);
 
-export default router; // Make sure you are exporting default
+export default router;
