@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "./order.css";
+import "../pages-css/order.css";
 import logo from "../assets/salespoint-logo.png";
 
 const API_URL = "http://localhost:5000/api/menu";

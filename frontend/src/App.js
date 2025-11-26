@@ -1,12 +1,12 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Auth from "./pages/Auth";
+import Auth from "./pages/AuthPage";
 import OrderPage from "./pages/OrderPage";
-import Inventory from "./pages/Inventory";
+import Inventory from "./pages/InventoryPage";
 import Dashboard from "./pages/Dashboard";
-import ShiftSchedule from "./pages/shift";
-import AuditLogsPage from "./pages/AuditLogsPage";
-import Roles from "./pages/Roles";
+import ShiftSchedule from "./pages/ShiftPage";
+import AuditLogsPage from "./pages/AuditPage";
+import Roles from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
 import Layout from "./Layout/layout";
 import "./App.css";

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../pages/shift.css";
+import "../pages-css/shift.css";
 // sidebar is provided by Layout
 import logo from '../assets/salespoint-logo.png';
 

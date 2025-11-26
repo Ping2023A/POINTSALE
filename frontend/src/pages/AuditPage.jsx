@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { /* Link, useLocation */ } from "react-router-dom";
-import "./auditlogs.css";
+import "../pages-css/audit.css";
 import logo from "../assets/salespoint-logo.png";
 
 function AuditLogsPage() {

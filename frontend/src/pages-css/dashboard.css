@@ -27,9 +27,13 @@
 .main-content {
   flex: 1;
   padding: 2rem;
-  height: 100vh; /* full viewport height */
-  overflow-y: auto; /* enable vertical scrolling */
   box-sizing: border-box;
+}
+
+/* Ensure the page root doesn't force an extra viewport-height scroll
+   when used inside the layout's scrolling container. */
+.dashboard {
+  width: 100%;
 }
 
 /* ====================== TOP BAR ====================== */
