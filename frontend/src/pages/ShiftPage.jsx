@@ -393,9 +393,7 @@ export default function ShiftSchedule() {
             <span>Week of {weekDates[0].toLocaleDateString()} - {weekDates[4].toLocaleDateString()}</span>
             <button onClick={nextWeek}>{">"}</button>
           </div>
-          <div className="shift-actions">
-            <button className="save-shifts-btn" onClick={() => saveShiftsToServer()} title="Save all shifts to server">Save Shifts</button>
-          </div>
+          {/* Shift actions removed — autosave is enabled for add/move/remove operations */}
         </div>
 
         <div className="schedule-card">

@@ -4,6 +4,7 @@ import "../pages-css/order.css";
 import logo from "../assets/salespoint-logo.png";
 
 const API_URL = "http://localhost:5000/api/menu";
+const INVENTORY_API = "http://localhost:5000/api/inventory";
 
 export default function OrderPage() {
   const [categories, setCategories] = useState(["All"]);
@@ -23,22 +24,55 @@ export default function OrderPage() {
   const [newItemPrice, setNewItemPrice] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("");
   const [newItemVariants, setNewItemVariants] = useState("");
+  // Toasts for modern alerts
+  const [toasts, setToasts] = useState([]);
+  const showToast = (type, message, timeout = 5000) => {
+    const id = Date.now() + Math.random();
+    setToasts(t => [...t, { id, type, message }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), timeout);
+  };
 
   // Fetch categories and items from backend on load
   useEffect(() => {
+    let mounted = true;
     const fetchData = async () => {
       try {
         const catRes = await axios.get(`${API_URL}/categories`);
+        if (!mounted) return;
         setCategories(["All", ...catRes.data.map(c => c.name)]);
 
-        const itemRes = await axios.get(`${API_URL}/items`);
-        setItems(itemRes.data);
+        const [itemRes, invRes] = await Promise.all([
+          axios.get(`${API_URL}/items`),
+          axios.get(`${INVENTORY_API}`)
+        ]);
+        if (!mounted) return;
+
+        // Inventory items may have stock/variants; map them to the same shape used by menu
+        const invItems = (invRes.data || []).map(i => ({
+          _id: i._id,
+          name: i.name,
+          price: i.price,
+          category: i.category,
+          variants: i.variants && i.variants.length ? i.variants : undefined,
+          stock: i.stock,
+          source: 'inventory'
+        }));
+
+        const menuItems = (itemRes.data || []).map(i => ({ ...i, source: 'menu' }));
+
+        // Merge menu + inventory, inventory appended (but avoid id collisions)
+        const merged = [...menuItems, ...invItems.filter(inv => !menuItems.some(m => String(m._id) === String(inv._id)))];
+        setItems(merged);
       } catch (err) {
         console.error(err);
-        alert("Failed to fetch menu data");
+        showToast('error', "Failed to fetch menu/inventory data");
       }
     };
     fetchData();
+
+    // Poll inventory periodically so newly added inventory items show up in order page
+    const poll = setInterval(() => fetchData(), 5000);
+    return () => { mounted = false; clearInterval(poll); };
   }, []);
 
   const filteredItems =
@@ -54,15 +88,20 @@ export default function OrderPage() {
 
   const addToCart = () => {
     if (!selectedItem) return;
-
     const itemKey = selectedItem._id + (selectedVariant || "");
+
+    // Check stock if available
+    const stock = typeof selectedItem.stock !== 'undefined' ? Number(selectedItem.stock) : null;
+    const existingQty = (cart.find(i => i.key === itemKey)?.qty) || 0;
+    if (stock !== null && existingQty + 1 > stock) {
+      showToast('warn', 'Cannot add more — item out of stock');
+      return;
+    }
 
     setCart(prev => {
       const existing = prev.find(i => i.key === itemKey);
       if (existing) {
-        return prev.map(i =>
-          i.key === itemKey ? { ...i, qty: i.qty + 1 } : i
-        );
+        return prev.map(i => i.key === itemKey ? { ...i, qty: i.qty + 1 } : i);
       }
       return [
         ...prev,
@@ -81,20 +120,134 @@ export default function OrderPage() {
   };
 
   const updateQty = (key, delta) => {
-    setCart(prev =>
-      prev
-        .map(i => (i.key === key ? { ...i, qty: i.qty + delta } : i))
-        .filter(i => i.qty > 0)
-    );
+    // adjust by delta using setQty which enforces stock
+    setCart(prev => {
+      const existing = prev.find(i => i.key === key);
+      const current = existing ? existing.qty : 0;
+      const newQty = current + delta;
+      // use setQty logic inline to avoid stale closures
+      if (newQty <= 0) {
+        return prev.filter(i => i.key !== key);
+      }
+      const itemDef = items.find(it => String(it._id) === String(existing?.id));
+      if (itemDef && typeof itemDef.stock !== 'undefined' && newQty > Number(itemDef.stock)) {
+        showToast('warn', 'Not enough stock');
+        return prev;
+      }
+      return prev.map(i => i.key === key ? { ...i, qty: newQty } : i);
+    });
   };
+
+  const setQty = (key, qty) => {
+    const newQty = Number(qty) || 0;
+    setCart(prev => {
+      const existing = prev.find(i => i.key === key);
+      if (!existing) return prev;
+      if (newQty <= 0) {
+        // remove item
+        return prev.filter(i => i.key !== key);
+      }
+      const itemDef = items.find(it => String(it._id) === String(existing.id));
+      if (itemDef && typeof itemDef.stock !== 'undefined' && newQty > Number(itemDef.stock)) {
+        showToast('warn', `Cannot set quantity. Only ${itemDef.stock} left`);
+        return prev;
+      }
+      return prev.map(i => i.key === key ? { ...i, qty: newQty } : i);
+    });
+  };
+
+  // Remove cart entries if underlying item was deleted from menu/inventory
+  useEffect(() => {
+    setCart(prev => prev.filter(ci => items.some(it => String(it._id) === String(ci.id))));
+  }, [items]);
 
   const clearCart = () => {
     setCart([]);
     setDiscount(0);
   };
 
+  const removeCartItem = (key) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.key === key);
+      if (!existing) return prev;
+      showToast('warn', `${existing.name} removed from cart`);
+      return prev.filter(i => i.key !== key);
+    });
+  };
+
   const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
   const finalTotal = Math.max(total - discount, 0);
+
+  // Place order: decrement inventory stocks for inventory items, enforce limits
+  const handlePlaceOrder = async () => {
+    if (cart.length === 0) {
+      showToast('warn', 'Cart is empty');
+      return;
+    }
+    // First, validate stock availability again
+    for (const ci of cart) {
+      const itemDef = items.find(it => String(it._id) === String(ci.id));
+      if (!itemDef) {
+        showToast('error', `Item ${ci.name} no longer exists`);
+        return;
+      }
+      if (typeof itemDef.stock !== 'undefined') {
+        const available = Number(itemDef.stock);
+        if (ci.qty > available) {
+          showToast('warn', `Not enough stock for ${ci.name}. Available: ${available}`);
+          return;
+        }
+      }
+    }
+
+    // Perform updates sequentially to the inventory API
+    const updatedItems = { ...items };
+    try {
+      for (const ci of cart) {
+        const itemDef = items.find(it => String(it._id) === String(ci.id));
+        if (itemDef && typeof itemDef.stock !== 'undefined') {
+          const available = Number(itemDef.stock);
+          const newStock = available - ci.qty;
+          // send update to backend inventory
+          await axios.put(`${INVENTORY_API}/${ci.id}`, { stock: newStock });
+          // update local items array
+          updatedItems[itemDef._id] = { ...itemDef, stock: newStock };
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update inventory while placing order', err);
+      showToast('error', 'Failed to place order due to inventory error. Please try again.');
+      // refresh items from server to get authoritative state
+      try {
+        const [itemRes, invRes] = await Promise.all([
+          axios.get(`${API_URL}/items`),
+          axios.get(`${INVENTORY_API}`)
+        ]);
+        const invItems = (invRes.data || []).map(i => ({
+          _id: i._id,
+          name: i.name,
+          price: i.price,
+          category: i.category,
+          variants: i.variants && i.variants.length ? i.variants : undefined,
+          stock: i.stock,
+          source: 'inventory'
+        }));
+        const menuItems = (itemRes.data || []).map(i => ({ ...i, source: 'menu' }));
+        const merged = [...menuItems, ...invItems.filter(inv => !menuItems.some(m => String(m._id) === String(inv._id)))];
+        setItems(merged);
+      } catch (e) {
+        console.error('Failed to refresh items', e);
+      }
+      return;
+    }
+
+    // Apply local updates to items state
+    setItems(prev => prev.map(it => updatedItems[it._id] ? updatedItems[it._id] : it));
+
+    // Order placed — here we just clear the cart and show success. Integrate with receipt/printing as needed.
+    clearCart();
+    showToast('success', 'Order placed successfully');
+  };
 
   /* -------------------------
      CATEGORY FUNCTIONS
@@ -108,7 +261,7 @@ export default function OrderPage() {
       setNewCategoryName("");
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to add category");
+      showToast('error', err.response?.data?.message || "Failed to add category");
     }
   };
 
@@ -123,7 +276,7 @@ export default function OrderPage() {
       if (selectedCategory === cat) setSelectedCategory("All");
     } catch (err) {
       console.error(err);
-      alert("Failed to delete category");
+      showToast('error', "Failed to delete category");
     }
   };
 
@@ -153,7 +306,7 @@ export default function OrderPage() {
       setNewItemVariants("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add item");
+      showToast('error', "Failed to add item");
     }
   };
 
@@ -164,7 +317,7 @@ export default function OrderPage() {
       setItems(items.filter(i => i._id !== id));
     } catch (err) {
       console.error(err);
-      alert("Failed to delete item");
+      showToast('error', "Failed to delete item");
     }
   };
 
@@ -193,16 +346,22 @@ export default function OrderPage() {
         </div>
 
         <div className="item-grid-modern">
-          {filteredItems.map(item => (
-            <div
-              key={item._id}
-              className="item-card-modern"
-              onClick={() => openItemModal(item)}
-            >
-              <div className="item-name-modern">{item.name}</div>
-              <div className="item-price-modern">₱{item.price}</div>
-            </div>
-          ))}
+          {filteredItems.map(item => {
+            const outOfStock = typeof item.stock !== 'undefined' && Number(item.stock) <= 0;
+            return (
+              <div
+                key={item._id}
+                className={`item-card-modern ${outOfStock ? 'out-of-stock' : ''}`}
+                onClick={() => !outOfStock && openItemModal(item)}
+                title={outOfStock ? 'Out of stock' : ''}
+                style={{ opacity: outOfStock ? 0.5 : 1 }}
+              >
+                <div className="item-name-modern">{item.name}</div>
+                <div className="item-price-modern">₱{item.price}{item.stock !== undefined ? ` • ${item.stock} left` : ''}</div>
+                {outOfStock && <div className="oos-badge">Out of Stock</div>}
+              </div>
+            );
+          })}
         </div>
 
         <button
@@ -235,10 +394,28 @@ export default function OrderPage() {
                     <div className="cart-subtotal-modern">₱{item.price * item.qty}</div>
                   </div>
                   <div className="qty-controls-modern">
-                    <button onClick={() => updateQty(item.key, -1)}>-</button>
-                    <span className="qty-count-modern">{item.qty}</span>
-                    <button onClick={() => updateQty(item.key, 1)}>+</button>
-                    <div className="cart-item-price-small">₱{item.price}</div>
+                    <div className="qty-left-controls">
+                      <button onClick={() => updateQty(item.key, -1)}>-</button>
+                      <input
+                        type="number"
+                        min={1}
+                        className="qty-input-modern"
+                        value={item.qty}
+                        onChange={(e) => setQty(item.key, e.target.value)}
+                      />
+                      <button onClick={() => updateQty(item.key, 1)}>+</button>
+                    </div>
+                    <div className="qty-right-controls">
+                      <button aria-label={`Remove ${item.name}`} className="delete-cart-item-modern" onClick={() => removeCartItem(item.key)} title="Remove item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                          <path d="M3 6h18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M10 11v6M14 11v6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="sr-only">Remove</span>
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -273,8 +450,10 @@ export default function OrderPage() {
           </div>
 
           <div className="action-buttons-modern">
-            <button className="primary" onClick={() => alert("Receipt printed!")}>
-              Print Receipt
+            <button className="primary" onClick={async () => {
+              await handlePlaceOrder();
+            }}>
+              Place Order
             </button>
             <button onClick={clearCart} className="secondary">
               Clear
@@ -380,3 +559,5 @@ export default function OrderPage() {
     </div>
   );
 }
+
+// Toast container rendered at root of file (keeps component self-contained)
