@@ -106,6 +106,18 @@
     font-size: 13px;
 }
 
+.oos-badge {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #fff;
+    background: #c53030;
+    padding: 6px 8px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 700;
+}
+.item-card-modern.out-of-stock { cursor: default; border: 1px solid rgba(0,0,0,0.04); }
+
 /* --- Add Item Button --- */
 .add-item-btn-modern {
     margin-top: 15px;
@@ -269,6 +281,51 @@
     display: inline-block;
     font-weight: 600;
 }
+
+.qty-input-modern {
+    width: 64px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #e6e9ee;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* Quantity controls layout: left (buttons+input) and right (price + delete) */
+.qty-controls-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+.qty-left-controls { display: flex; gap: 8px; align-items: center; }
+.qty-right-controls { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+
+
+.delete-cart-item-modern {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(90deg,#ef4444,#dc2626);
+    color: #fff;
+    border: 2px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    transition: transform 0.08s ease, box-shadow 0.12s ease;
+    box-shadow: 0 6px 18px rgba(220,38,38,0.14);
+}
+.delete-cart-item-modern:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(220,38,38,0.18); }
+.delete-cart-item-modern svg { display: block; }
+.delete-cart-item-modern .sr-only { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+/* tighten spacing and improve visual balance for cart items */
+.cart-item-modern { padding: 12px 14px; }
+.cart-item-top { margin-bottom: 8px; }
 
 /* --- SECTION BREAK --- */
 .total-section-modern {
