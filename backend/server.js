@@ -9,8 +9,12 @@ import salesRoutes from "./routes/sales.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import menuRoutes from "./routes/menu.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
+<<<<<<< HEAD
+import shiftRoutes from "./routes/shift.routes.js";
+=======
 import inventoryRoutes from "./routes/inventory.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
+>>>>>>> c264471095f8d1bc62d777c723dd3d5fe55bb209
 
 import { initializeSettings } from "./controllers/settings.controller.js";
 
@@ -27,8 +31,12 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/settings", settingsRoutes);
+<<<<<<< HEAD
+app.use("/api/shifts", shiftRoutes);
+=======
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/audit", auditRoutes);
+>>>>>>> c264471095f8d1bc62d777c723dd3d5fe55bb209
 
 // Health check
 app.get("/", (req, res) => res.send("POS API Running"));
