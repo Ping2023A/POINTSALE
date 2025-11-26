@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./auth.css";
+import "../pages-css/auth.css";
 import logo from "../assets/salespoint-logo.png";
 import googleIcon from "../assets/google-icon.png";
 import facebookIcon from "../assets/facebook-icon.png";

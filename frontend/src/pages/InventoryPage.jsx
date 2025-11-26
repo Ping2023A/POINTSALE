@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { /* Link, useLocation */ } from 'react-router-dom';
-import './inventory.css';
+import '../pages-css/inventory.css';
 import logo from '../assets/salespoint-logo.png';
 
 const Inventory = () => {

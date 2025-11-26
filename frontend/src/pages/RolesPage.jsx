@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./roles.css";
+import "../pages-css/roles.css";
 import logo from "../assets/salespoint-logo.png";
 
 const Roles = () => {
