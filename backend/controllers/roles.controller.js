@@ -1,5 +1,6 @@
 // backend/controllers/roles.controller.js
 import Role from "../models/Role.js";
+import Shift from "../models/Shift.js";
 
 // Get all roles
 export const getRoles = async (req, res) => {
@@ -21,8 +22,36 @@ export const createRole = async (req, res) => {
     const existing = await Role.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already exists" });
 
-    const role = await Role.create(req.body);
-    res.status(201).json(role);
+    const role = await Role.create(req.body);//here
+
+    // Create default morning shifts for the new role for the current week (Mon-Fri)
+    try {
+      const today = new Date();
+      const day = today.getDay();
+      const diff = day === 0 ? -6 : 1 - day; // compute Monday
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + diff);
+
+      const shiftsToCreate = [];
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        shiftsToCreate.push({
+          employeeId: role._id,
+          date: dateStr,
+          type: 'morning',
+          start: '06:00',
+          end: '14:00',
+          status: 'assigned'
+        });
+      }
+      await Shift.insertMany(shiftsToCreate);
+    } catch (shiftErr) {
+      console.error('Failed to create default shifts for new role:', shiftErr);
+    }
+
+    res.status(201).json(role);//stop
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to create role" });
