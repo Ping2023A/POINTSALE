@@ -9,6 +9,7 @@ import salesRoutes from "./routes/sales.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import menuRoutes from "./routes/menu.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
+import inventoryRoutes from "./routes/inventory.routes.js";
 
 import { initializeSettings } from "./controllers/settings.controller.js";
 
@@ -25,12 +26,13 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 // Health check
 app.get("/", (req, res) => res.send("POS API Running"));
 
 // MongoDB connection
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/pointsale";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sdecastro_db_user:seantest123@please.cospmds.mongodb.net/?appName=please";
 
 mongoose
   .connect(MONGO_URI, {
