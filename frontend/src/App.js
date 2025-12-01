@@ -10,7 +10,7 @@ import AuditLogsPage from "./pages/AuditPage";
 import Roles from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
 import CreateStore from "./pages/CreateStore";
-import LandingPage from "./pages/LandingPage";  // ⬅ import landing page
+import LandingPage from "./pages/LandingPage";
 import JoinStore from "./pages/JoinStore";
 import MyStores from "./pages/MyStores";
 import Layout from "./Layout/layout";
@@ -33,6 +33,7 @@ function App() {
 
         {/* Pages with sidebar */}
         <Route path="/app" element={<Layout />}>
+          <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="order" element={<OrderPage />} />
           <Route path="inventory" element={<Inventory />} />
@@ -40,9 +41,11 @@ function App() {
           <Route path="audit" element={<AuditLogsPage />} />
           <Route path="roles" element={<Roles />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="/createstore" element={<CreateStore />} />
-          <Route path="/joinstore" element={<JoinStore />} />
-          <Route path="/mystores" element={<MyStores />} />
+
+          {/* Store pages under /app */}
+          <Route path="createstore" element={<CreateStore />} />
+          <Route path="joinstore" element={<JoinStore />} />
+          <Route path="mystores" element={<MyStores />} />
         </Route>
 
         {/* Catch-all fallback */}

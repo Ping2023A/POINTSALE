@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import Layout from "../Layout/layout.jsx";          // ✅ Sidebar + layout wrapper
-import "../pages-css/createstore.css";              // ✅ Styles from pages-css folder
+import "../pages-css/createstore.css";              
 import logo from "../assets/salespoint-logo.png";
 
 function CreateStore() {
@@ -50,7 +49,7 @@ function CreateStore() {
   };
 
   return (
-    <Layout>
+    <div className="page-container">
       {/* Top Bar */}
       <header className="top-bar">
         <div className="logo-container">
@@ -114,18 +113,12 @@ function CreateStore() {
             <option value="$">US Dollar ($)</option>
             <option value="€">Euro (€)</option>
           </select>
-          <input
-            type="number"
-            name="tax"
-            value={storeData.tax}
-            onChange={handleChange}
-            placeholder="Tax/VAT %"
-          />
+          <input type="number" name="tax" value={storeData.tax} onChange={handleChange} placeholder="Tax/VAT %" />
           <input type="file" name="logo" onChange={handleFileChange} />
           <button type="submit">Create Store</button>
         </form>
       </section>
-    </Layout>
+    </div>
   );
 }
 
