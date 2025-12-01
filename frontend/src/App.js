@@ -12,6 +12,7 @@ import SettingsPage from "./pages/SettingsPage";
 import CreateStore from "./pages/CreateStore";
 import LandingPage from "./pages/LandingPage";  // ⬅ import landing page
 import JoinStore from "./pages/JoinStore";
+import MyStores from "./pages/MyStores";
 import Layout from "./Layout/layout";
 
 import "./App.css";
@@ -41,6 +42,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="/createstore" element={<CreateStore />} />
           <Route path="/joinstore" element={<JoinStore />} />
+          <Route path="/mystores" element={<MyStores />} />
         </Route>
 
         {/* Catch-all fallback */}
