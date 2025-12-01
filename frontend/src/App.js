@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
 import Auth from "./pages/AuthPage";
 import OrderPage from "./pages/OrderPage";
 import Inventory from "./pages/InventoryPage";
@@ -8,7 +9,9 @@ import ShiftSchedule from "./pages/ShiftPage";
 import AuditLogsPage from "./pages/AuditPage";
 import Roles from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
+import LandingPage from "./pages/LandingPage";  // ⬅ import landing page
 import Layout from "./Layout/layout";
+
 import "./App.css";
 
 function App() {
@@ -17,15 +20,16 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Auth routes (no sidebar) */}
+
+        {/* Landing page (no sidebar) */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Auth pages (no sidebar) */}
         <Route path="/login" element={<Auth />} />
         <Route path="/signup" element={<Auth />} />
 
-        {/* Main app wrapped with shared Layout (contains sidebar) */}
-        <Route path="/" element={<Layout />}>
-          {/* Redirect root to login page instead of dashboard */}
-          <Route index element={<Navigate to="/login" replace />} />
-          
+        {/* Pages with sidebar */}
+        <Route path="/app" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="order" element={<OrderPage />} />
           <Route path="inventory" element={<Inventory />} />
@@ -35,8 +39,9 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
-        {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </Router>
   );
