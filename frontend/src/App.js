@@ -13,7 +13,7 @@ import CreateStore from "./pages/CreateStore";
 import LandingPage from "./pages/LandingPage";
 import JoinStore from "./pages/JoinStore";
 import MyStores from "./pages/MyStores";
-import Layout from "./Layout/layout";
+import Sidebar from "./Layout/Sidebar";
 
 import "./App.css";
 
@@ -32,7 +32,7 @@ function App() {
         <Route path="/signup" element={<Auth />} />
 
         {/* Pages with sidebar */}
-        <Route path="/app" element={<Layout />}>
+        <Route path="/app" element={<Sidebar />}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="order" element={<OrderPage />} />
