@@ -6,6 +6,7 @@ const ActionBadge = ({ type }) => {
     Edited: 'badge-yellow',
     Deleted: 'badge-red',
     Restocked: 'badge-green',
+    Subtracted: 'badge-subtracted',
     Login: 'badge-gray',
     Logout: 'badge-gray'
   };
@@ -40,7 +41,12 @@ const AuditTable = ({ data = [], onView, sortBy, sortDirection, onSort }) => {
             <div className="col role">{log.role}</div>
             <div className="col actionType"><ActionBadge type={log.actionType || 'Other'} /></div>
             <div className="col target">{log.target || '-'}</div>
-            <div className="col summary">{(log.action || '').slice(0,120)}{(log.action || '').length>120?'…':''}</div>
+            <div className="col summary">
+              {(log.summary || log.message || log.action || '').split('\n').map((line, idx) => (
+                <div key={idx}>{line}</div>
+              ))}
+              {log.orderId && <div className="order-id">Order #{log.orderId}</div>}
+            </div>
             <div className="col view"><button className="view-btn" onClick={() => onView(log)}>View Details</button></div>
           </div>
         ))}

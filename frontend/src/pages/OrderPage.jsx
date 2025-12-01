@@ -200,23 +200,31 @@ export default function OrderPage() {
       }
     }
 
-    // Perform updates sequentially to the inventory API
-    const updatedItems = { ...items };
+    // Send the whole order to the backend so it can atomically decrement stocks and write Subtracted audit logs
     try {
-      for (const ci of cart) {
-        const itemDef = items.find(it => String(it._id) === String(ci.id));
-        if (itemDef && typeof itemDef.stock !== 'undefined') {
-          const available = Number(itemDef.stock);
-          const newStock = available - ci.qty;
-          // send update to backend inventory
-          await axios.put(`${INVENTORY_API}/${ci.id}`, { stock: newStock });
-          // update local items array
-          updatedItems[itemDef._id] = { ...itemDef, stock: newStock };
-        }
-      }
+      const payload = {
+        items: cart.map(ci => ({ id: ci.id, name: ci.name, qty: ci.qty, price: ci.price })),
+        paymentMethod,
+        discount,
+        // include user info if available; replace with real user email/role when auth is added
+        userEmail: 'owner@example.local',
+        userRole: 'Owner'
+      };
+      const resp = await axios.post('http://localhost:5000/api/orders', payload);
+      const { orderId, updatedItems: returned } = resp.data;
+
+      // Merge updated inventory stocks into local items
+      setItems(prev => prev.map(it => {
+        const updated = returned.find(u => String(u.id || u._id) === String(it._id) || String(u.id) === String(it._id));
+        if (updated) return { ...it, stock: updated.stock };
+        return it;
+      }));
+
+      clearCart();
+      showToast('success', `Order placed (${orderId})`);
     } catch (err) {
-      console.error('Failed to update inventory while placing order', err);
-      showToast('error', 'Failed to place order due to inventory error. Please try again.');
+      console.error('Failed to place order', err);
+      showToast('error', 'Failed to place order. Please try again.');
       // refresh items from server to get authoritative state
       try {
         const [itemRes, invRes] = await Promise.all([
@@ -238,15 +246,7 @@ export default function OrderPage() {
       } catch (e) {
         console.error('Failed to refresh items', e);
       }
-      return;
     }
-
-    // Apply local updates to items state
-    setItems(prev => prev.map(it => updatedItems[it._id] ? updatedItems[it._id] : it));
-
-    // Order placed — here we just clear the cart and show success. Integrate with receipt/printing as needed.
-    clearCart();
-    showToast('success', 'Order placed successfully');
   };
 
   /* -------------------------

@@ -11,6 +11,7 @@ import menuRoutes from "./routes/menu.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
+import ordersRoutes from "./routes/orders.routes.js";
 import shiftRoutes from "./routes/shift.routes.js";
 
 import { initializeSettings } from "./controllers/settings.controller.js";
@@ -30,6 +31,7 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/orders", ordersRoutes);
 app.use("/api/shifts", shiftRoutes);
 
 // Health check

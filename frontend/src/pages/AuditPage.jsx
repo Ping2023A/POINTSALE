@@ -21,26 +21,32 @@ function AuditLogsPage() {
     setLoading(true);
     fetch('http://localhost:5000/api/audit')
       .then(res => res.json())
-      .then(data => {
-        // normalize logs: extract actionType/target heuristically
+        .then(data => {
+        // normalize logs: prefer structured fields from backend when present, fall back to heuristic parsing
         const normalized = data.map(d => {
-          const actionText = d.action || '';
-          let actionType = 'Other';
-          const t = actionText.toLowerCase();
-          if (t.includes('created')) actionType = 'Created';
-          else if (t.includes('edited') || t.includes('updated')) actionType = 'Edited';
-          else if (t.includes('deleted')) actionType = 'Deleted';
-          else if (t.includes('restock') || t.includes('restocked')) actionType = 'Restocked';
-          else if (t.includes('login')) actionType = 'Login';
-          else if (t.includes('logout')) actionType = 'Logout';
+          const legacyText = d.action || d.message || '';
 
-          // attempt to find a quoted target or "on <target>" pattern
-          let target = null;
-          const quoteMatch = actionText.match(/"([^"]+)"/);
-          if (quoteMatch) target = quoteMatch[1];
-          else {
-            const onMatch = actionText.match(/on\s+([A-Za-z0-9 _-]+)/i);
-            if (onMatch) target = onMatch[1].trim();
+          // Prefer structured actionType if provided by backend
+          let actionType = d.actionType || 'Other';
+          if (!d.actionType) {
+            const t = legacyText.toLowerCase();
+            if (t.includes('created')) actionType = 'Created';
+            else if (t.includes('edited') || t.includes('updated')) actionType = 'Edited';
+            else if (t.includes('deleted')) actionType = 'Deleted';
+            else if (t.includes('restock') || t.includes('restocked')) actionType = 'Restocked';
+            else if (t.includes('login')) actionType = 'Login';
+            else if (t.includes('logout')) actionType = 'Logout';
+          }
+
+          // Prefer structured target if provided
+          let target = d.target || null;
+          if (!target) {
+            const quoteMatch = legacyText.match(/"([^"]+)"/);
+            if (quoteMatch) target = quoteMatch[1];
+            else {
+              const onMatch = legacyText.match(/on\s+([A-Za-z0-9 _-]+)/i);
+              if (onMatch) target = onMatch[1].trim();
+            }
           }
 
           return { ...d, actionType, target };
