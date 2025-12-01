@@ -9,7 +9,7 @@ const Layout = () => {
 
   return (
     <div className="dashboard-layout">
-      {/* Sidebar (centralized) */}
+      {/* Sidebar */}
       <aside className={`sidebar ${expanded ? "expanded" : "collapsed"}`}>
         <div className="sidebar-top">
           <div className="nav-toggle" onClick={() => setExpanded(!expanded)}>
@@ -19,34 +19,34 @@ const Layout = () => {
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/dashboard" className={`nav-icon ${isActive("/dashboard") ? "active" : ""}`}>
+          <Link to="/app/dashboard" className={`nav-icon ${isActive("/app/dashboard") ? "active" : ""}`}>
             <span className="icon">🏠</span>
             {expanded && <span className="label">Dashboard</span>}
           </Link>
-          <Link to="/roles" className={`nav-icon ${isActive("/roles") ? "active" : ""}`}>
+          <Link to="/app/roles" className={`nav-icon ${isActive("/app/roles") ? "active" : ""}`}>
             <span className="icon">👥</span>
             {expanded && <span className="label">Roles</span>}
           </Link>
-          <Link to="/inventory" className={`nav-icon ${isActive("/inventory") ? "active" : ""}`}>
+          <Link to="/app/inventory" className={`nav-icon ${isActive("/app/inventory") ? "active" : ""}`}>
             <span className="icon">📦</span>
             {expanded && <span className="label">Inventory</span>}
           </Link>
-          <Link to="/order" className={`nav-icon ${isActive("/order") ? "active" : ""}`}>
+          <Link to="/app/order" className={`nav-icon ${isActive("/app/order") ? "active" : ""}`}>
             <span className="icon">🧾</span>
             {expanded && <span className="label">Order Entries</span>}
           </Link>
-          <Link to="/audit" className={`nav-icon ${isActive("/audit") ? "active" : ""}`}>
+          <Link to="/app/audit" className={`nav-icon ${isActive("/app/audit") ? "active" : ""}`}>
             <span className="icon">🕵️</span>
             {expanded && <span className="label">Audit Logs</span>}
           </Link>
-          <Link to="/shift" className={`nav-icon ${isActive("/shift") ? "active" : ""}`}>
+          <Link to="/app/shift" className={`nav-icon ${isActive("/app/shift") ? "active" : ""}`}>
             <span className="icon">📅</span>
             {expanded && <span className="label">Shift Board</span>}
           </Link>
         </nav>
 
         <div className="sidebar-bottom">
-          <Link to="/settings" className={`nav-icon ${isActive("/settings") ? "active" : ""}`}>
+          <Link to="/app/settings" className={`nav-icon ${isActive("/app/settings") ? "active" : ""}`}>
             <span className="icon">⚙️</span>
             {expanded && <span className="label">Settings</span>}
           </Link>

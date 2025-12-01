@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Layout from "../Layout/layout.jsx";          // ✅ Sidebar wrapper
-import "../pages-css/mystores.css";                 // ✅ Styles
+import "../pages-css/mystores.css";                 
 import logo from "../assets/salespoint-logo.png";
 
 function MyStores() {
@@ -26,7 +25,7 @@ function MyStores() {
   };
 
   return (
-    <Layout>
+    <div className="page-container">
       {/* Top Bar */}
       <header className="top-bar">
         <div className="logo-container">
@@ -54,28 +53,29 @@ function MyStores() {
             </tr>
           </thead>
           <tbody>
-            {stores.map((store) => (
-              <tr key={store._id}>
-                <td>{store.name}</td>
-                <td>{store.owner}</td>
-                <td>{store.email}</td>
-                <td>{store.role}</td>
-                <td>{new Date(store.createdAt).toLocaleDateString()}</td>
-                <td>
-                  {store.role === "Creator" ? (
-                    <button className="manage-btn">Manage</button>
-                  ) : (
-                    <button
-                      className="leave-btn"
-                      onClick={() => handleLeave(store._id)}
-                    >
-                      Leave
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {stores.length === 0 && (
+            {stores.length > 0 ? (
+              stores.map((store) => (
+                <tr key={store._id}>
+                  <td>{store.name}</td>
+                  <td>{store.owner}</td>
+                  <td>{store.email}</td>
+                  <td>{store.role}</td>
+                  <td>{new Date(store.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    {store.role === "Creator" ? (
+                      <button className="manage-btn">Manage</button>
+                    ) : (
+                      <button
+                        className="leave-btn"
+                        onClick={() => handleLeave(store._id)}
+                      >
+                        Leave
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
                 <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
                   No stores found.
@@ -85,7 +85,7 @@ function MyStores() {
           </tbody>
         </table>
       </section>
-    </Layout>
+    </div>
   );
 }
 

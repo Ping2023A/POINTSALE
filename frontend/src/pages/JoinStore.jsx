@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import Layout from "../Layout/layout.jsx";          // ✅ Sidebar + layout wrapper
-import "../pages-css/joinstore.css";                // ✅ Styles from pages-css folder
+import "../pages-css/joinstore.css";                
 import logo from "../assets/salespoint-logo.png";
 
 function JoinStore() {
@@ -39,7 +38,7 @@ function JoinStore() {
   };
 
   return (
-    <Layout>
+    <div className="page-container">
       {/* Top Bar */}
       <header className="top-bar">
         <div className="logo-container">
@@ -85,7 +84,7 @@ function JoinStore() {
 
         {message && <p className="feedback">{message}</p>}
       </section>
-    </Layout>
+    </div>
   );
 }
 
