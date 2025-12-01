@@ -1,0 +1,44 @@
+.stores-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stores-table th,
+.stores-table td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.stores-table th {
+  background: #f4f4f4;
+}
+
+.manage-btn,
+.leave-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.manage-btn {
+  background: #0078d4;
+  color: #fff;
+}
+
+.manage-btn:hover {
+  background: #005a9e;
+}
+
+.leave-btn {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.leave-btn:hover {
+  background: #c0392b;
+}
