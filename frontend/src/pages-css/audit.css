@@ -103,9 +103,13 @@
 .badge-green { background:#2e9b4f }
 .badge-gray { background:#7b7b7b }
 
+.badge-subtracted { background: #7a3fb2 }
+
 .empty-state { padding:40px; text-align:center; }
 .empty-state .empty-icon { font-size:44px; margin-bottom:8px }
 .empty-state h3 { margin:6px 0 }
+
+.order-id { margin-top:6px; font-weight:600; color:#444 }
 
 /* Modal */
 .audit-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:1200 }

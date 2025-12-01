@@ -1,20 +1,10 @@
 import React from 'react';
 
-const parseChanges = (actionText) => {
-  // Try to find patterns like "Field: old -> new" and return array
-  const regex = /([A-Za-z0-9 _]+):\s*([^\-]+)\s*->\s*([^,;]+)/g;
-  const matches = [];
-  let m;
-  while ((m = regex.exec(actionText)) !== null) {
-    matches.push({ field: m[1].trim(), before: m[2].trim(), after: m[3].trim() });
-  }
-  return matches;
-};
-
 const AuditModal = ({ log, onClose }) => {
   if (!log) return null;
 
-  const changes = parseChanges(log.action || '');
+  // Prefer structured changes when available
+  const changes = (log.changes && log.changes.length) ? log.changes : [];
 
   return (
     <div className="audit-modal-overlay" onClick={onClose}>
@@ -28,6 +18,7 @@ const AuditModal = ({ log, onClose }) => {
           <div className="meta-row"><strong>User:</strong> {log.email} <span className="muted">· {log.role}</span></div>
           <div className="meta-row"><strong>Action:</strong> {log.actionType || '—'}</div>
           <div className="meta-row"><strong>Target:</strong> {log.target || '—'}</div>
+          {log.orderId && <div className="meta-row"><strong>Order ID:</strong> {log.orderId}</div>}
 
           <section className="details-section">
             <h4>Details</h4>
@@ -36,12 +27,14 @@ const AuditModal = ({ log, onClose }) => {
                 <thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead>
                 <tbody>
                   {changes.map((c, i) => (
-                    <tr key={i}><td>{c.field}</td><td>{c.before}</td><td>{c.after}</td></tr>
+                    <tr key={i}><td>{c.field}</td><td>{String(c.before)}</td><td>{String(c.after)}</td></tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <pre className="action-raw">{log.action}</pre>
+              <div>
+                {log.summary ? <div className="action-summary">{log.summary}</div> : <pre className="action-raw">{log.action || log.message}</pre>}
+              </div>
             )}
           </section>
         </div>

@@ -20,7 +20,24 @@ export const create = async (req, res) => {
   try {
     const user = getUserFromReq(req);
     const action = `Created item "${item.name}" (category: ${item.category}, stock: ${item.stock}, price: ${item.price})`;
-    await AuditLog.create({ email: user.email, role: user.role, action, date: new Date() });
+    const changes = [
+      { field: 'name', before: null, after: item.name },
+      { field: 'category', before: null, after: item.category },
+      { field: 'stock', before: null, after: item.stock },
+      { field: 'price', before: null, after: item.price }
+    ];
+    await AuditLog.create({
+      email: user.email,
+      role: user.role,
+      actionType: 'Created',
+      resourceType: 'Inventory',
+      resourceId: item._id?.toString?.() || String(item._id),
+      target: item.name,
+      changes,
+      message: action,
+      action,
+      date: new Date()
+    });
   } catch (e) {
     console.error('Failed to write audit log (create):', e);
   }
@@ -42,13 +59,24 @@ export const update = async (req, res) => {
       fields.forEach(f => {
         const bv = before[f];
         const av = after[f];
-        if (String(bv) !== String(av)) changes.push(`${f}: ${bv} -> ${av}`);
+        if (String(bv) !== String(av)) changes.push({ field: f, before: bv, after: av });
       });
     }
     const action = changes.length > 0
-      ? `Edited item "${after?.name || id}" — ${changes.join('; ')}`
+      ? `Edited item "${after?.name || id}" — ${changes.map(c=>`${c.field}: ${c.before} -> ${c.after}`).join('; ')}`
       : `Edited item "${after?.name || id}"`;
-    await AuditLog.create({ email: user.email, role: user.role, action, date: new Date() });
+    await AuditLog.create({
+      email: user.email,
+      role: user.role,
+      actionType: 'Edited',
+      resourceType: 'Inventory',
+      resourceId: id,
+      target: after?.name,
+      changes,
+      message: action,
+      action,
+      date: new Date()
+    });
   } catch (e) {
     console.error('Failed to write audit log (update):', e);
   }
@@ -64,7 +92,24 @@ export const remove = async (req, res) => {
   try {
     const user = getUserFromReq(req);
     const action = before ? `Deleted item "${before.name}" (id: ${id})` : `Deleted item id ${id}`;
-    await AuditLog.create({ email: user.email, role: user.role, action, date: new Date() });
+    const changes = before ? [
+      { field: 'name', before: before.name, after: null },
+      { field: 'category', before: before.category, after: null },
+      { field: 'stock', before: before.stock, after: null },
+      { field: 'price', before: before.price, after: null }
+    ] : [];
+    await AuditLog.create({
+      email: user.email,
+      role: user.role,
+      actionType: 'Deleted',
+      resourceType: 'Inventory',
+      resourceId: id,
+      target: before?.name,
+      changes,
+      message: action,
+      action,
+      date: new Date()
+    });
   } catch (e) {
     console.error('Failed to write audit log (delete):', e);
   }
