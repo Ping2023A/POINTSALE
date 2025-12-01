@@ -9,6 +9,7 @@ import ShiftSchedule from "./pages/ShiftPage";
 import AuditLogsPage from "./pages/AuditPage";
 import Roles from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
+import CreateStore from "./pages/CreateStore";
 import LandingPage from "./pages/LandingPage";  // ⬅ import landing page
 import Layout from "./Layout/layout";
 
@@ -37,6 +38,7 @@ function App() {
           <Route path="audit" element={<AuditLogsPage />} />
           <Route path="roles" element={<Roles />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="/createstore" element={<CreateStore />} />
         </Route>
 
         {/* Catch-all fallback */}
