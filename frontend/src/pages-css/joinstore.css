@@ -1,0 +1,35 @@
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.join-form input,
+.join-form select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.join-form button {
+  background: #1abc9c;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.join-form button:hover {
+  background: #16a085;
+}
+
+.feedback {
+  margin-top: 15px;
+  font-weight: bold;
+  color: #0078d4;
+}
