@@ -25,7 +25,6 @@ function App() {
   return (
     <Router>
       <Routes>
-
         {/* Landing page (no sidebar) */}
         <Route path="/" element={<LandingPage />} />
 
@@ -35,8 +34,8 @@ function App() {
 
         {/* Pages WITH sidebar */}
         <Route path="/app" element={<Sidebar />}>
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
+          {/* ✅ Only store-specific dashboard */}
+          <Route path="dashboard/:storeId" element={<Dashboard />} />
           <Route path="order" element={<OrderPage />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="shift" element={<ShiftSchedule />} />
@@ -52,7 +51,6 @@ function App() {
 
         {/* Catch-all fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </Router>
   );

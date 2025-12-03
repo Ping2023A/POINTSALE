@@ -1,15 +1,19 @@
 import React, { useState } from "react";
-import "../pages-css/joinstore.css";                
+import "../pages-css/joinstore.css";
 import logo from "../assets/salespoint-logo.png";
+import { useNavigate } from "react-router-dom";
 
 function JoinStore() {
   const [formData, setFormData] = useState({
     storeCode: "",
     email: "",
-    role: "Staff"
+    role: "Staff",
   });
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,32 +22,58 @@ function JoinStore() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
     try {
-      // Payload matches backend expectations
       const payload = {
-        storeCode: formData.storeCode,
-        email: formData.email,
-        role: formData.role
+        storeCode: formData.storeCode.trim(),
+        email: formData.email.trim(),
+        role: formData.role,
       };
 
       const res = await fetch("http://localhost:5000/api/stores/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
 
       if (res.ok) {
-        setMessage(`Successfully joined store: ${result.storeName}`);
+        setMessage(`✅ Successfully joined store: ${result.storeName}`);
+
+        // Persist email globally so MyStores can fetch correctly
+        localStorage.setItem("userEmail", formData.email.trim());
+
+        // Save current storeId for sidebar/dashboard navigation
+        if (result.storeId) {
+          localStorage.setItem("currentStoreId", result.storeId);
+        }
+
+        // Reset form
         setFormData({ storeCode: "", email: "", role: "Staff" });
+
+        // ✅ Redirect directly to the store dashboard
+        if (result.storeId) {
+          window.location.href = `/app/dashboard/${result.storeId}`;
+        } else {
+          // fallback if storeId not returned
+          window.location.href = "/mystores";
+        }
       } else {
-        setMessage(result.error || "Failed to join store.");
+        setMessage(`❌ ${result.error || "Failed to join store."}`);
       }
     } catch (err) {
       console.error("Error joining store:", err);
-      setMessage("Server error. Please try again later.");
+      setMessage("⚠️ Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleBack = () => {
+    navigate("/"); // ✅ back to landing page (adjust route if needed)
   };
 
   return (
@@ -78,15 +108,19 @@ function JoinStore() {
             placeholder="Your Email"
             required
           />
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-          >
+          <select name="role" value={formData.role} onChange={handleChange}>
             <option value="Staff">Staff</option>
             <option value="Manager">Manager</option>
           </select>
-          <button type="submit">Join Store</button>
+
+          <div className="form-buttons">
+            <button type="submit" disabled={loading}>
+              {loading ? "Joining..." : "Join Store"}
+            </button>
+            <button type="button" onClick={handleBack} className="back-btn">
+              Back
+            </button>
+          </div>
         </form>
 
         {message && <p className="feedback">{message}</p>}

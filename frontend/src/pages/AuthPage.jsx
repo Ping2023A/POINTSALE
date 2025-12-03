@@ -39,8 +39,11 @@ function Auth() {
           return;
         }
 
-        // Redirect to dashboard
-        navigate("/dashboard");
+        // ✅ Save email for MyStores
+        localStorage.setItem("userEmail", userCredential.user.email);
+
+        // ✅ Redirect to MyStores
+        navigate("/mystores");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log("Signed up:", userCredential.user);
@@ -51,6 +54,7 @@ function Auth() {
 
         await sendEmailVerification(userCredential.user);
         alert("Verification email sent. Please check your inbox to activate your account.");
+
         navigate("/login");
       }
     } catch (error) {
@@ -65,8 +69,11 @@ function Auth() {
       const result = await signInWithPopup(auth, provider);
       console.log("Google login:", result.user);
 
-      // Redirect after Google login
-      navigate("/dashboard");
+      // ✅ Save email for MyStores
+      localStorage.setItem("userEmail", result.user.email);
+
+      // ✅ Redirect after Google login
+      navigate("/mystores");
     } catch (error) {
       console.error("Google login error:", error.message);
       alert(error.message);
