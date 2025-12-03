@@ -13,17 +13,18 @@ import inventoryRoutes from "./routes/inventory.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import shiftRoutes from "./routes/shift.routes.js";
+import storeRoutes from "./routes/store.Routes.js";   // ✅ Added store routes
 
 import { initializeSettings } from "./controllers/settings.controller.js";
 
 dotenv.config();
 const app = express();
 
-// Middleware
+// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// Route registrations
+// ✅ Route registrations
 app.use("/api/roles", roleRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -33,12 +34,15 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/shifts", shiftRoutes);
+app.use("/api/stores", storeRoutes);   // ✅ Register store routes
 
-// Health check
+// ✅ Health check
 app.get("/", (req, res) => res.send("POS API Running"));
 
-// MongoDB connection
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sdecastro_db_user:seantest123@please.cospmds.mongodb.net/?appName=please";
+// ✅ MongoDB connection
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  "mongodb+srv://sdecastro_db_user:seantest123@please.cospmds.mongodb.net/?appName=please";
 
 mongoose
   .connect(MONGO_URI, {
@@ -51,6 +55,6 @@ mongoose
   })
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Start server
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
