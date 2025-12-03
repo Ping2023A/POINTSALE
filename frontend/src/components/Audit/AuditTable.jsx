@@ -1,17 +1,26 @@
 import React from 'react';
 
 const ActionBadge = ({ type }) => {
-  const map = {
+  // Normalize a few legacy/variant labels and map to CSS classes
+  const classMap = {
     Created: 'badge-blue',
     Edited: 'badge-yellow',
     Deleted: 'badge-red',
+    // Keep backwards-compatible mapping for legacy values
+    Delete: 'badge-red',
     Restocked: 'badge-green',
     Subtracted: 'badge-subtracted',
     Login: 'badge-gray',
     Logout: 'badge-gray'
   };
-  const cls = map[type] || 'badge-gray';
-  return <span className={`action-badge ${cls}`}>{type}</span>;
+  // Normalize display names for legacy values
+  const displayMap = {
+    Delete: 'Deleted'
+  };
+
+  const cls = classMap[type] || 'badge-gray';
+  const display = displayMap[type] || type || 'Other';
+  return <span className={`action-badge ${cls}`}>{display}</span>;
 };
 
 const SortIndicator = ({ dir }) => (

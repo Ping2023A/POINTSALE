@@ -16,7 +16,8 @@ const AuditModal = ({ log, onClose }) => {
         <div className="modal-body">
           <div className="meta-row"><strong>Timestamp:</strong> <span className="mono">{new Date(log.date || log.createdAt).toLocaleString()}</span></div>
           <div className="meta-row"><strong>User:</strong> {log.email} <span className="muted">· {log.role}</span></div>
-          <div className="meta-row"><strong>Action:</strong> {log.actionType || '—'}</div>
+          {/* Normalize 'Delete' display to 'Deleted' for clarity */}
+          <div className="meta-row"><strong>Action:</strong> {(log.actionType === 'Delete' ? 'Deleted' : (log.actionType || '—'))}</div>
           <div className="meta-row"><strong>Target:</strong> {log.target || '—'}</div>
           {log.orderId && <div className="meta-row"><strong>Order ID:</strong> {log.orderId}</div>}
 
