@@ -22,20 +22,25 @@ const LandingPage = () => {
 
       {/* Options */}
       <div className="landing-options">
-        <div className="landing-card" onClick={() => navigate("/app/createstore")}>
+
+        {/* Create Store */}
+        <div className="landing-card" onClick={() => navigate("/createstore")}>
           <h3>Create Store</h3>
           <p>Start a new store and manage everything from scratch.</p>
         </div>
 
-        <div className="landing-card" onClick={() => navigate("/app/joinstore")}>
+        {/* Join Store */}
+        <div className="landing-card" onClick={() => navigate("/joinstore")}>
           <h3>Join Store</h3>
           <p>Join an existing store using a store code.</p>
         </div>
 
-        <div className="landing-card" onClick={() => navigate("/app/mystores")}>
+        {/* My Stores */}
+        <div className="landing-card" onClick={() => navigate("/mystores")}>
           <h3>View Store</h3>
           <p>View stores you created or joined.</p>
         </div>
+
       </div>
 
     </div>

@@ -26,45 +26,58 @@ function CreateStore() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Map frontend 'email' to backend 'ownerEmail' and initialize members
+      const payload = {
+        ...storeData,
+        ownerEmail: storeData.email,
+        members: [{ email: storeData.email, role: "Creator" }]
+      };
+      delete payload.email; // remove frontend email key
+
       const res = await fetch("http://localhost:5000/api/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(storeData)
+        body: JSON.stringify(payload)
       });
+
       const created = await res.json();
-      alert(`Store "${created.name}" created successfully!`);
-      setStoreData({
-        name: "",
-        owner: "",
-        email: "",
-        phone: "",
-        address: "",
-        currency: "₱",
-        tax: "",
-        logo: null
-      });
+
+      if (res.ok) {
+        alert(`Store "${created.name}" created successfully!`);
+        setStoreData({
+          name: "",
+          owner: "",
+          email: "",
+          phone: "",
+          address: "",
+          currency: "₱",
+          tax: "",
+          logo: null
+        });
+      } else {
+        alert(created.error || "Failed to create store.");
+      }
     } catch (err) {
       console.error("Error creating store:", err);
+      alert("Server error. Please try again later.");
     }
   };
 
   return (
-    <div className="page-container">
-      {/* Top Bar */}
-      <header className="top-bar">
-        <div className="logo-container">
-          <img src={logo} alt="Sales Point Logo" className="logo" />
-        </div>
-        <div className="user-profile">John Doe</div>
-      </header>
+    <div className="landing-container">
+      {/* Centered Logo */}
+      <div className="landing-logo">
+        <img src={logo} alt="SalesPoint Logo" className="logo" />
+      </div>
 
       {/* Page Header */}
-      <section className="page-header">
-        <h2>Create Your Store</h2>
-      </section>
+      <div className="landing-header">
+        <h1>Create Your Store</h1>
+        <p>Fill in the details below to start a new store.</p>
+      </div>
 
       {/* Store Form */}
-      <section className="page-content">
+      <div className="landing-options">
         <form className="store-form" onSubmit={handleSubmit}>
           <input
             type="text"
@@ -87,7 +100,7 @@ function CreateStore() {
             name="email"
             value={storeData.email}
             onChange={handleChange}
-            placeholder="Email"
+            placeholder="Owner Email"
             required
           />
           <input
@@ -113,11 +126,17 @@ function CreateStore() {
             <option value="$">US Dollar ($)</option>
             <option value="€">Euro (€)</option>
           </select>
-          <input type="number" name="tax" value={storeData.tax} onChange={handleChange} placeholder="Tax/VAT %" />
+          <input
+            type="number"
+            name="tax"
+            value={storeData.tax}
+            onChange={handleChange}
+            placeholder="Tax/VAT %"
+          />
           <input type="file" name="logo" onChange={handleFileChange} />
           <button type="submit">Create Store</button>
         </form>
-      </section>
+      </div>
     </div>
   );
 }

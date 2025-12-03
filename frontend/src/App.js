@@ -9,10 +9,12 @@ import ShiftSchedule from "./pages/ShiftPage";
 import AuditLogsPage from "./pages/AuditPage";
 import Roles from "./pages/RolesPage";
 import SettingsPage from "./pages/SettingsPage";
+
 import CreateStore from "./pages/CreateStore";
 import LandingPage from "./pages/LandingPage";
 import JoinStore from "./pages/JoinStore";
 import MyStores from "./pages/MyStores";
+
 import Sidebar from "./Layout/Sidebar";
 
 import "./App.css";
@@ -31,7 +33,7 @@ function App() {
         <Route path="/login" element={<Auth />} />
         <Route path="/signup" element={<Auth />} />
 
-        {/* Pages with sidebar */}
+        {/* Pages WITH sidebar */}
         <Route path="/app" element={<Sidebar />}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
@@ -41,12 +43,12 @@ function App() {
           <Route path="audit" element={<AuditLogsPage />} />
           <Route path="roles" element={<Roles />} />
           <Route path="settings" element={<SettingsPage />} />
-
-          {/* Store pages under /app */}
-          <Route path="createstore" element={<CreateStore />} />
-          <Route path="joinstore" element={<JoinStore />} />
-          <Route path="mystores" element={<MyStores />} />
         </Route>
+
+        {/* Pages WITHOUT sidebar */}
+        <Route path="/createstore" element={<CreateStore />} />
+        <Route path="/joinstore" element={<JoinStore />} />
+        <Route path="/mystores" element={<MyStores />} />
 
         {/* Catch-all fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
