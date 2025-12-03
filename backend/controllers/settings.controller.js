@@ -1,4 +1,4 @@
-import Setting from "../models/setting.js";
+import Setting from "../models/Setting.js";
 
 // Initialize default settings if not present
 export const initializeSettings = async () => {

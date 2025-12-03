@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import API from '../api';
 import '../pages-css/audit.css';
 import logo from '../assets/salespoint-logo.png';
 import AuditFilters from '../components/Audit/AuditFilters';
@@ -19,9 +20,9 @@ function AuditLogsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:5000/api/audit')
-      .then(res => res.json())
-        .then(data => {
+    API.get('/audit')
+      .then(res => {
+        const data = res.data;
         // normalize logs: prefer structured fields from backend when present, fall back to heuristic parsing
         const normalized = data.map(d => {
           const legacyText = d.action || d.message || '';

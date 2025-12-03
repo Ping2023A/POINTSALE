@@ -1,5 +1,5 @@
 // backend/initSettings.js
-import Setting from "./models/setting.model.js";
+import Setting from "./models/Setting.js";
 
 export const initializeSettings = async () => {
   const defaults = [

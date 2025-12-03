@@ -78,4 +78,22 @@ router.post("/:id/leave", async (req, res) => {
   }
 });
 
+// ✅ Delete Store (only owner can delete)
+router.delete("/:id", async (req, res) => {
+  const { email } = req.body; // owner email must be provided in body
+  try {
+    const store = await Store.findById(req.params.id);
+    if (!store) return res.status(404).json({ error: "Store not found" });
+
+    if (!email || store.ownerEmail !== email) {
+      return res.status(403).json({ error: "Only the owner can delete this store" });
+    }
+
+    await store.deleteOne();
+    res.json({ message: "Store deleted" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;

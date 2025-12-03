@@ -24,6 +24,7 @@ const AuditLogSchema = new mongoose.Schema({
   summary: { type: String },
   // Reference to an order if applicable
   orderId: { type: String, index: true },
+  storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', index: true },
 
   // Legacy field kept for compatibility
   action: { type: String },

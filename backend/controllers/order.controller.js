@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Inventory from '../models/Inventory.js';
 import AuditLog from '../models/AuditLog.js';
 import OrderRecord from '../models/OrderRecord.js';
+import { getStoreFilter } from '../middleware/store.middleware.js';
 
 // Place an order: decrement inventory, create order record, and create Subtracted audit logs
 export const placeOrder = async (req, res) => {
@@ -16,7 +17,9 @@ export const placeOrder = async (req, res) => {
     const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 0), 0) - (discount || 0);
     // Map incoming items (which use `id`) to OrderRecord schema (uses `itemId`)
     const itemsForRecord = items.map(it => ({ itemId: it.id, name: it.name, qty: it.qty, price: it.price }));
-    const order = await OrderRecord.create([{ items: itemsForRecord, total, paymentMethod }], { session });
+    const orderPayload = { items: itemsForRecord, total, paymentMethod };
+    if (req.storeId) orderPayload.storeId = req.storeId;
+    const order = await OrderRecord.create([orderPayload], { session });
     const orderId = order[0]._id.toString();
 
     const updatedItems = [];
@@ -25,6 +28,11 @@ export const placeOrder = async (req, res) => {
       // If this item corresponds to an inventory item, decrement stock
       if (!it.id) continue;
       const inv = await Inventory.findById(it.id).session(session);
+      // ensure inventory belongs to current store (if storeId provided)
+      if (req.storeId && inv && String(inv.storeId) !== String(req.storeId)) {
+        await session.abortTransaction();
+        return res.status(400).json({ error: `Item ${it.name} does not belong to this store` });
+      }
       if (!inv) continue;
       const oldStock = Number(inv.stock || 0);
       const qty = Number(it.qty || 0);
@@ -51,6 +59,7 @@ export const placeOrder = async (req, res) => {
           message: summary,
           summary,
           orderId,
+          ...(req.storeId ? { storeId: req.storeId } : {}),
           date: new Date()
         }], { session });
       }

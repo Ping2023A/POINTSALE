@@ -12,6 +12,8 @@ const OrderRecordSchema = new mongoose.Schema({
   total: { type: Number, required: true },
   paymentMethod: { type: String },
   createdAt: { type: Date, default: Date.now }
+  ,storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' }
 });
 
 export default mongoose.model('OrderRecord', OrderRecordSchema);
+

@@ -42,6 +42,11 @@
   line-height: 1;
 }
 
+/* Remove underline for logo link and ensure pointer cursor */
+.logo {
+  text-decoration: none;
+  cursor: pointer;
+}
 .sidebar-nav, .sidebar-bottom {
   display: flex;
   flex-direction: column;

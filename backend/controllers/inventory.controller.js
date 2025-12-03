@@ -1,5 +1,6 @@
 import Inventory from "../models/Inventory.js";
 import AuditLog from "../models/AuditLog.js";
+import { getStoreFilter } from "../middleware/store.middleware.js";
 
 const getUserFromReq = (req) => {
   // try common places for user info; fallback to system
@@ -9,12 +10,14 @@ const getUserFromReq = (req) => {
 };
 
 export const getAll = async (req, res) => {
-  const items = await Inventory.find();
+  const filter = getStoreFilter(req);
+  const items = await Inventory.find(filter);
   res.json(items);
 };
 
 export const create = async (req, res) => {
-  const item = await Inventory.create(req.body);
+  const payload = { ...req.body, ...(req.storeId ? { storeId: req.storeId } : {}) };
+  const item = await Inventory.create(payload);
 
   // Audit log
   try {
@@ -36,7 +39,8 @@ export const create = async (req, res) => {
       changes,
       message: action,
       action,
-      date: new Date()
+      date: new Date(),
+      ...(req.storeId ? { storeId: req.storeId } : {})
     });
   } catch (e) {
     console.error('Failed to write audit log (create):', e);
@@ -47,8 +51,9 @@ export const create = async (req, res) => {
 
 export const update = async (req, res) => {
   const id = req.params.id;
-  const before = await Inventory.findById(id).lean();
-  const after = await Inventory.findByIdAndUpdate(id, req.body, { new: true });
+  const filter = getStoreFilter(req);
+  const before = await Inventory.findOne({ _id: id, ...filter }).lean();
+  const after = await Inventory.findOneAndUpdate({ _id: id, ...filter }, req.body, { new: true });
 
   // Build change summary
   try {
@@ -76,6 +81,7 @@ export const update = async (req, res) => {
       message: action,
       action,
       date: new Date()
+    , ...(req.storeId ? { storeId: req.storeId } : {})
     });
   } catch (e) {
     console.error('Failed to write audit log (update):', e);
@@ -86,8 +92,9 @@ export const update = async (req, res) => {
 
 export const remove = async (req, res) => {
   const id = req.params.id;
-  const before = await Inventory.findById(id).lean();
-  await Inventory.findByIdAndDelete(id);
+  const filter = getStoreFilter(req);
+  const before = await Inventory.findOne({ _id: id, ...filter }).lean();
+  await Inventory.findOneAndDelete({ _id: id, ...filter });
 
   try {
     const user = getUserFromReq(req);
@@ -109,6 +116,7 @@ export const remove = async (req, res) => {
       message: action,
       action,
       date: new Date()
+    , ...(req.storeId ? { storeId: req.storeId } : {})
     });
   } catch (e) {
     console.error('Failed to write audit log (delete):', e);

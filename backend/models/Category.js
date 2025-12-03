@@ -5,9 +5,9 @@ const CategorySchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      trim: true,
-      unique: true, // ensures no duplicate category names
+      trim: true
     },
+    storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' }
   },
   { timestamps: true } // optional: createdAt and updatedAt
 );
