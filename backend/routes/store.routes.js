@@ -6,7 +6,13 @@ const router = express.Router();
 // ✅ Create Store
 router.post("/", async (req, res) => {
   try {
-    const store = new Store(req.body);
+    // Ensure 'ownerEmail' is provided
+    const { ownerEmail, name, owner, phone, address, currency, tax, logo } = req.body;
+    if (!ownerEmail || !name || !owner) {
+      return res.status(400).json({ error: "Missing required fields: ownerEmail, name, or owner" });
+    }
+
+    const store = new Store({ ownerEmail, name, owner, phone, address, currency, tax, logo });
     await store.save();
     res.status(201).json(store);
   } catch (err) {
@@ -39,7 +45,7 @@ router.get("/mystores", async (req, res) => {
   const { email } = req.query; // pass user email in query
   try {
     // Stores created by this user (owner email)
-    const createdStores = await Store.find({ email: email });
+    const createdStores = await Store.find({ ownerEmail: email });
 
     // Stores joined by this user (member email)
     const joinedStores = await Store.find({ "members.email": email });

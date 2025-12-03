@@ -19,12 +19,21 @@ function JoinStore() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Payload matches backend expectations
+      const payload = {
+        storeCode: formData.storeCode,
+        email: formData.email,
+        role: formData.role
+      };
+
       const res = await fetch("http://localhost:5000/api/stores/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
+
       const result = await res.json();
+
       if (res.ok) {
         setMessage(`Successfully joined store: ${result.storeName}`);
         setFormData({ storeCode: "", email: "", role: "Staff" });
@@ -38,22 +47,20 @@ function JoinStore() {
   };
 
   return (
-    <div className="page-container">
-      {/* Top Bar */}
-      <header className="top-bar">
-        <div className="logo-container">
-          <img src={logo} alt="Sales Point Logo" className="logo" />
-        </div>
-        <div className="user-profile">John Doe</div>
-      </header>
+    <div className="landing-container">
+      {/* Centered Logo */}
+      <div className="landing-logo">
+        <img src={logo} alt="SalesPoint Logo" className="logo" />
+      </div>
 
       {/* Page Header */}
-      <section className="page-header">
-        <h2>Join a Store</h2>
-      </section>
+      <div className="landing-header">
+        <h1>Join a Store</h1>
+        <p>Enter the store code to join an existing store.</p>
+      </div>
 
       {/* Join Store Form */}
-      <section className="page-content">
+      <div className="landing-options">
         <form className="join-form" onSubmit={handleSubmit}>
           <input
             type="text"
@@ -83,7 +90,7 @@ function JoinStore() {
         </form>
 
         {message && <p className="feedback">{message}</p>}
-      </section>
+      </div>
     </div>
   );
 }
