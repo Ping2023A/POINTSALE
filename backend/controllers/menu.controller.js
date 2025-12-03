@@ -1,7 +1,7 @@
 // backend/controllers/menu.controller.js
 
-import Item from "../models/item.model.js";
-import Category from "../models/category.model.js";
+import Item from "../models/Item.js";
+import Category from "../models/Category.js";
 
 /* ===========================
    CATEGORY CONTROLLERS
