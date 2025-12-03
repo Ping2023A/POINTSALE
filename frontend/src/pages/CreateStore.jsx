@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../pages-css/createstore.css";              
 import logo from "../assets/salespoint-logo.png";
+import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 function CreateStore() {
   const [storeData, setStoreData] = useState({
@@ -26,15 +29,24 @@ function CreateStore() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Map frontend 'email' to backend 'ownerEmail' and initialize members
-      const payload = {
-        ...storeData,
-        ownerEmail: storeData.email,
-        members: [{ email: storeData.email, role: "Creator" }]
-      };
-      delete payload.email; // remove frontend email key
+      const ownerEmail = userEmail || storeData.email;
 
-      const res = await fetch("http://localhost:5000/api/stores", {
+      // sanitize logo: backend expects a string (url/path). If user selected a file, skip it for now.
+      const logoValue = storeData.logo && storeData.logo instanceof File ? "" : storeData.logo || "";
+
+      const payload = {
+        name: storeData.name,
+        owner: storeData.owner,
+        ownerEmail,
+        phone: storeData.phone,
+        address: storeData.address,
+        currency: storeData.currency,
+        tax: storeData.tax ? Number(storeData.tax) : 0,
+        logo: logoValue,
+        members: [{ email: ownerEmail, role: "Creator" }]
+      };
+
+      const res = await fetch(`/api/stores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -54,6 +66,7 @@ function CreateStore() {
           tax: "",
           logo: null
         });
+        navigate("/mystores");
       } else {
         alert(created.error || "Failed to create store.");
       }
@@ -62,6 +75,17 @@ function CreateStore() {
       alert("Server error. Please try again later.");
     }
   };
+
+  const [userEmail, setUserEmail] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u && u.email) setUserEmail(u.email);
+      else setUserEmail("");
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div className="landing-container">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import API from "../api";
 import "../pages-css/shift.css";
 import logo from '../assets/salespoint-logo.png';
 
@@ -51,7 +51,7 @@ export default function ShiftSchedule() {
     // Fetch employees from backend roles endpoint
     const fetchEmployees = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/roles");
+        const res = await API.get(`/roles`);
         const roles = res.data || [];
         const emps = roles.map(r => ({ id: r._id, name: r.name }));
         setEmployees(emps);
@@ -77,7 +77,7 @@ export default function ShiftSchedule() {
     const loadWeekShifts = async () => {
       try {
         const weekStartStr = weekDates[0].toISOString().split('T')[0];
-        const res = await axios.get(`http://localhost:5000/api/shifts?weekStart=${weekStartStr}`);
+        const res = await API.get(`/shifts?weekStart=${weekStartStr}`);
         const serverShifts = res.data || [];
 
         // Build shifts map { empId: { date: [shift,...] } }
@@ -143,7 +143,7 @@ export default function ShiftSchedule() {
         return null;
       }
 
-      const res = await axios.post('http://localhost:5000/api/shifts/bulk', finalPayload);
+      const res = await API.post('/shifts/bulk', finalPayload);
       if (!opts.silent) alert(`Saved shifts`);
 
       // update server snapshot to reflect the saved state
@@ -176,7 +176,7 @@ export default function ShiftSchedule() {
     if (!newEmployeeName.trim()) return alert("Please enter a name");
     try {
       const payload = { name: newEmployeeName, email: `${Date.now()}@local`, role: 'Employee', date: new Date().toISOString().split('T')[0], phone: '' };
-      const res = await axios.post('http://localhost:5000/api/roles', payload);
+      const res = await API.post('/roles', payload);
       const created = res.data;
       const newEmp = { id: created._id, name: created.name };
       setEmployees(prev => [...prev, newEmp]);
@@ -186,7 +186,7 @@ export default function ShiftSchedule() {
       // Fetch the shifts for the current week (backend creates default morning shifts)
       try {
         const weekStartStr = weekDates[0].toISOString().split('T')[0];
-        const res2 = await axios.get(`http://localhost:5000/api/shifts?weekStart=${weekStartStr}`);
+        const res2 = await API.get(`/shifts?weekStart=${weekStartStr}`);
         const serverShifts = res2.data || [];
         const map = {};
         serverShifts.forEach(s => {

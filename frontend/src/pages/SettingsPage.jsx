@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api";
 import "../pages-css/settings.css";
 import logo from "../assets/salespoint-logo.png";
 
-const API_URL = "http://localhost:5000/api/settings";
+// use centralized API instance; interceptor attaches `x-store-id`
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({});
@@ -13,7 +13,7 @@ const SettingsPage = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await axios.get(API_URL);
+        const res = await API.get(`/settings`);
         const obj = {};
         res.data.forEach((s) => (obj[s.key] = s.value));
         setSettings(obj);
@@ -29,7 +29,7 @@ const SettingsPage = () => {
   const saveSetting = async (key, value) => {
     try {
       setSaving(true);
-      await axios.post(API_URL, { key, value });
+      await API.post(`/settings`, { key, value });
       setSettings((prev) => ({ ...prev, [key]: value }));
     } catch (err) {
       console.error("Failed to save setting:", err);

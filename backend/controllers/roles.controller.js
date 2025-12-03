@@ -2,6 +2,7 @@
 import Role from "../models/Role.js";
 import Shift from "../models/Shift.js";
 import AuditLog from "../models/AuditLog.js";
+import { getStoreFilter } from "../middleware/store.middleware.js";
 
 const getUserFromReq = (req) => {
   const email = req.user?.email || req.body?.userEmail || 'system@local';
@@ -12,7 +13,8 @@ const getUserFromReq = (req) => {
 // Get all roles
 export const getRoles = async (req, res) => {
   try {
-    const roles = await Role.find().sort({ createdAt: -1 });
+    const filter = getStoreFilter(req);
+    const roles = await Role.find(filter).sort({ createdAt: -1 });
     res.json(roles);
   } catch (err) {
     console.error(err);
@@ -26,10 +28,13 @@ export const createRole = async (req, res) => {
     const { email } = req.body;
 
     // Prevent duplicate emails
-    const existing = await Role.findOne({ email });
+    const filter = getStoreFilter(req);
+    const existing = await Role.findOne({ email, ...filter });
     if (existing) return res.status(400).json({ message: "Email already exists" });
 
-    const role = await Role.create(req.body);//here
+    // attach storeId if present
+    const toCreate = { ...req.body, ...(req.storeId ? { storeId: req.storeId } : {}) };
+    const role = await Role.create(toCreate);
 
     // Create default morning shifts for the new role for the current week (Mon-Fri)
     try {
@@ -53,6 +58,8 @@ export const createRole = async (req, res) => {
           status: 'assigned'
         });
       }
+      // attach storeId to shifts if present
+      if (req.storeId) shiftsToCreate.forEach(s => s.storeId = req.storeId);
       await Shift.insertMany(shiftsToCreate);
     } catch (shiftErr) {
       console.error('Failed to create default shifts for new role:', shiftErr);
@@ -71,7 +78,8 @@ export const createRole = async (req, res) => {
         target: role.name,
         summary,
         message: summary,
-        date: new Date()
+        date: new Date(),
+        ...(req.storeId ? { storeId: req.storeId } : {})
       });
     } catch (e) {
       console.error('Failed to write audit log (create role):', e);
@@ -88,8 +96,9 @@ export const createRole = async (req, res) => {
 export const updateRole = async (req, res) => {
   try {
     const id = req.params.id;
-    const before = await Role.findById(id).lean();
-    const role = await Role.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+    const filter = getStoreFilter(req);
+    const before = await Role.findOne({ _id: id, ...filter }).lean();
+    const role = await Role.findOneAndUpdate({ _id: id, ...filter }, req.body, { new: true, runValidators: true });
     if (!role) return res.status(404).json({ message: "Role not found" });
 
     // Audit log: Edited user — build diff summary
@@ -120,7 +129,8 @@ export const updateRole = async (req, res) => {
           if (m) return { field: m[1].trim(), before: m[2].trim(), after: m[3].trim() };
           return { field: d, before: null, after: null };
         }),
-        date: new Date()
+        date: new Date(),
+        ...(req.storeId ? { storeId: req.storeId } : {})
       });
     } catch (e) {
       console.error('Failed to write audit log (update role):', e);
@@ -137,7 +147,8 @@ export const updateRole = async (req, res) => {
 export const deleteRole = async (req, res) => {
   try {
     const id = req.params.id;
-    const role = await Role.findByIdAndDelete(id);
+    const filter = getStoreFilter(req);
+    const role = await Role.findOneAndDelete({ _id: id, ...filter });
     if (!role) return res.status(404).json({ message: "Role not found" });
 
     // Audit log: Deleted user
@@ -153,7 +164,8 @@ export const deleteRole = async (req, res) => {
         target: role.name,
         summary,
         message: summary,
-        date: new Date()
+        date: new Date(),
+        ...(req.storeId ? { storeId: req.storeId } : {})
       });
     } catch (e) {
       console.error('Failed to write audit log (delete role):', e);

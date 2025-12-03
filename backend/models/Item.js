@@ -25,4 +25,6 @@ const ItemSchema = new mongoose.Schema(
   { timestamps: true } // optional but useful
 );
 
+ItemSchema.add({ storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' } });
+
 export default mongoose.model("Item", ItemSchema);

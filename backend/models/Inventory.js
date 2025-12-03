@@ -6,6 +6,7 @@ const InventorySchema = new mongoose.Schema({
   stock: { type: Number, required: true },
   price: { type: Number, required: true },
   variants: { type: [String], default: [] }
+  ,storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' }
 }, { timestamps: true });
 
 export default mongoose.model("Inventory", InventorySchema);

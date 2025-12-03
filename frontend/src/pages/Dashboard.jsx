@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { /* Link, */ /* useLocation */ } from "react-router-dom";
 import axios from "axios";
+import API from "../api";
 import logo from "../assets/salespoint-logo.png";
 import "../pages-css/dashboard.css";
 
@@ -69,8 +70,7 @@ const Dashboard = () => {
   const [popularProducts, setPopularProducts] = useState([]);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/dashboard")
+    API.get('/dashboard')
       .then((res) => {
         setWeeklySales(res.data.weeklySales || []);
         setSummary(res.data.summary || {});

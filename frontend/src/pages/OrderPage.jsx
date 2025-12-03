@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api";
 import "../pages-css/order.css";
 import logo from "../assets/salespoint-logo.png";
 
-const API_URL = "http://localhost:5000/api/menu";
-const INVENTORY_API = "http://localhost:5000/api/inventory";
+// Use centralized `API` instance (baseURL `/api`) so `x-store-id` is attached automatically
 
 export default function OrderPage() {
   const [categories, setCategories] = useState(["All"]);
@@ -37,13 +36,13 @@ export default function OrderPage() {
     let mounted = true;
     const fetchData = async () => {
       try {
-        const catRes = await axios.get(`${API_URL}/categories`);
+        const catRes = await API.get(`/menu/categories`);
         if (!mounted) return;
         setCategories(["All", ...catRes.data.map(c => c.name)]);
 
         const [itemRes, invRes] = await Promise.all([
-          axios.get(`${API_URL}/items`),
-          axios.get(`${INVENTORY_API}`)
+          API.get(`/menu/items`),
+          API.get(`/inventory`)
         ]);
         if (!mounted) return;
 
@@ -210,7 +209,7 @@ export default function OrderPage() {
         userEmail: 'owner@example.local',
         userRole: 'Owner'
       };
-      const resp = await axios.post('http://localhost:5000/api/orders', payload);
+      const resp = await API.post('/orders', payload);
       const { orderId, updatedItems: returned } = resp.data;
 
       // Merge updated inventory stocks into local items
@@ -228,8 +227,8 @@ export default function OrderPage() {
       // refresh items from server to get authoritative state
       try {
         const [itemRes, invRes] = await Promise.all([
-          axios.get(`${API_URL}/items`),
-          axios.get(`${INVENTORY_API}`)
+          API.get(`/menu/items`),
+          API.get(`/inventory`)
         ]);
         const invItems = (invRes.data || []).map(i => ({
           _id: i._id,
@@ -256,7 +255,7 @@ export default function OrderPage() {
     if (!newCategoryName.trim() || categories.includes(newCategoryName)) return;
 
     try {
-      const res = await axios.post(`${API_URL}/categories`, { name: newCategoryName });
+      const res = await API.post(`/menu/categories`, { name: newCategoryName });
       setCategories([...categories, res.data.name]);
       setNewCategoryName("");
     } catch (err) {
@@ -270,7 +269,7 @@ export default function OrderPage() {
     if (!window.confirm(`Delete category "${cat}"? Items in this category will also be deleted.`)) return;
 
     try {
-      await axios.delete(`${API_URL}/categories/${cat}`);
+      await API.delete(`/menu/categories/${cat}`);
       setCategories(categories.filter(c => c !== cat));
       setItems(items.filter(i => i.category !== cat));
       if (selectedCategory === cat) setSelectedCategory("All");
@@ -298,7 +297,7 @@ export default function OrderPage() {
     };
 
     try {
-      const res = await axios.post(`${API_URL}/items`, newItemData);
+      const res = await API.post(`/menu/items`, newItemData);
       setItems([...items, res.data]);
       setNewItemName("");
       setNewItemPrice("");
@@ -313,7 +312,7 @@ export default function OrderPage() {
   const deleteItem = async (id) => {
     if (!window.confirm("Delete this item?")) return;
     try {
-      await axios.delete(`${API_URL}/items/${id}`);
+      await API.delete(`/menu/items/${id}`);
       setItems(items.filter(i => i._id !== id));
     } catch (err) {
       console.error(err);

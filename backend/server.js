@@ -13,7 +13,8 @@ import inventoryRoutes from "./routes/inventory.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import shiftRoutes from "./routes/shift.routes.js";
-import storeRoutes from "./routes/store.Routes.js";   // ✅ Added store routes
+import storeRoutes from "./routes/store.routes.js";   // ✅ Added store routes
+import { attachStore } from "./middleware/store.middleware.js";
 
 import { initializeSettings } from "./controllers/settings.controller.js";
 
@@ -23,6 +24,9 @@ const app = express();
 // ✅ Middleware
 app.use(cors());
 app.use(express.json());
+
+// Attach store context (reads x-store-id header / query / body)
+app.use(attachStore);
 
 // ✅ Route registrations
 app.use("/api/roles", roleRoutes);
