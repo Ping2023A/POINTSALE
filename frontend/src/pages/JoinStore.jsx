@@ -1,9 +1,6 @@
-import React, { useState } from "react";
-import "../pages-css/joinstore.css";
-import logo from "../assets/salespoint-logo.png";
-import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
-import "../pages-css/joinstore.css";                
+import { useNavigate } from "react-router-dom";
+import "../pages-css/joinstore.css";
 import logo from "../assets/salespoint-logo.png";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -17,6 +14,7 @@ function JoinStore() {
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   const navigate = useNavigate();
 
@@ -33,11 +31,8 @@ function JoinStore() {
     try {
       const payload = {
         storeCode: formData.storeCode.trim(),
-        email: formData.email.trim(),
+        email: formData.email.trim() || userEmail,
         role: formData.role,
-        storeCode: formData.storeCode,
-        email: formData.email || userEmail,
-        role: formData.role
       };
 
       const res = await fetch(`/api/stores/join`, {
@@ -52,7 +47,7 @@ function JoinStore() {
         setMessage(`✅ Successfully joined store: ${result.storeName}`);
 
         // Persist email globally so MyStores can fetch correctly
-        localStorage.setItem("userEmail", formData.email.trim());
+        localStorage.setItem("userEmail", payload.email);
 
         // Save current storeId for sidebar/dashboard navigation
         if (result.storeId) {
@@ -81,9 +76,8 @@ function JoinStore() {
   };
 
   const handleBack = () => {
-    navigate("/"); // ✅ back to landing page (adjust route if needed)
+    navigate("/"); // ✅ back to landing page
   };
-  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
