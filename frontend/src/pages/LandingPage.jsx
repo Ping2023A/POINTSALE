@@ -39,14 +39,13 @@ const LandingPage = () => {
           <p>Join an existing store using a store code.</p>
         </div>
 
-        {/* My Stores */}
-        <div className="landing-card" onClick={() => navigate("/mystores")}>
+        {/* View Store → goes to AuthPage first */}
+        <div className="landing-card" onClick={() => navigate("/login")}>
           <h3>View Store</h3>
           <p>View stores you created or joined.</p>
         </div>
 
       </div>
-
     </div>
   );
 };

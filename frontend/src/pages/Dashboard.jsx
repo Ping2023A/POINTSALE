@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { /* Link, */ /* useLocation */ } from "react-router-dom";
 import axios from "axios";
 import API from "../api";
 import logo from "../assets/salespoint-logo.png";
@@ -63,13 +62,14 @@ const DashboardChart = ({ weeklySales }) => {
 };
 
 const Dashboard = () => {
-  
   const [weeklySales, setWeeklySales] = useState([]);
   const [summary, setSummary] = useState({});
   const [recentOrders, setRecentOrders] = useState([]);
   const [popularProducts, setPopularProducts] = useState([]);
 
   useEffect(() => {
+    axios
+      .get("http://localhost:5000/api/dashboard") // ✅ no storeId, global data
     API.get('/dashboard')
       .then((res) => {
         setWeeklySales(res.data.weeklySales || []);
@@ -82,9 +82,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      {/* Sidebar is centralized in Layout */}
-
-      {/* Main Content */}
       <main className="main-content">
         {/* Top Bar */}
         <header className="top-bar">
@@ -103,13 +100,9 @@ const Dashboard = () => {
           <h3>Today's Sales</h3>
           <div className="summary-cards">
             <div className="card">Total Sales: ₱{summary.totalSales || 0}</div>
-            <div className="card">
-              Total Customers: {summary.totalCustomers || 0}
-            </div>
+            <div className="card">Total Customers: {summary.totalCustomers || 0}</div>
             <div className="card">Total Orders: {summary.totalOrders || 0}</div>
-            <div className="card">
-              Average Sale: ₱{summary.avgSale?.toFixed(2) || 0}
-            </div>
+            <div className="card">Average Sale: ₱{summary.avgSale?.toFixed(2) || 0}</div>
           </div>
         </section>
 
