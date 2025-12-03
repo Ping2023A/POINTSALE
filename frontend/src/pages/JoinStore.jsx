@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import "../pages-css/joinstore.css";
 import logo from "../assets/salespoint-logo.png";
 import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import "../pages-css/joinstore.css";                
+import logo from "../assets/salespoint-logo.png";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 function JoinStore() {
   const [formData, setFormData] = useState({
@@ -30,9 +35,12 @@ function JoinStore() {
         storeCode: formData.storeCode.trim(),
         email: formData.email.trim(),
         role: formData.role,
+        storeCode: formData.storeCode,
+        email: formData.email || userEmail,
+        role: formData.role
       };
 
-      const res = await fetch("http://localhost:5000/api/stores/join", {
+      const res = await fetch(`/api/stores/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -75,6 +83,15 @@ function JoinStore() {
   const handleBack = () => {
     navigate("/"); // ✅ back to landing page (adjust route if needed)
   };
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u && u.email) setUserEmail(u.email);
+      else setUserEmail("");
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div className="landing-container">

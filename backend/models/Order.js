@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, required: true },
   customerId: { type: String }, // optional
   createdAt: { type: Date, default: Date.now },
+  storeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' }
 });
 
 export default mongoose.model("Order", orderSchema);

@@ -2,6 +2,7 @@
 
 import Item from "../models/Item.js";
 import Category from "../models/Category.js";
+import { getStoreFilter } from "../middleware/store.middleware.js";
 
 /* ===========================
    CATEGORY CONTROLLERS
@@ -11,7 +12,8 @@ import Category from "../models/Category.js";
 // @route  GET /api/menu/categories
 export const getCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const filter = getStoreFilter(req);
+    const categories = await Category.find(filter).sort({ name: 1 });
     res.status(200).json(categories);
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -29,12 +31,12 @@ export const addCategory = async (req, res) => {
       return res.status(400).json({ message: "Category name is required" });
     }
 
-    const exists = await Category.findOne({ name: name.trim() });
+    const filter = getStoreFilter(req);
+    const exists = await Category.findOne({ ...filter, name: name.trim() });
     if (exists) {
       return res.status(400).json({ message: "Category already exists" });
     }
-
-    const newCategory = new Category({ name: name.trim() });
+    const newCategory = new Category({ name: name.trim(), ...(req.storeId ? { storeId: req.storeId } : {}) });
     await newCategory.save();
 
     res.status(201).json(newCategory);
@@ -52,8 +54,9 @@ export const deleteCategory = async (req, res) => {
 
     if (!name) return res.status(400).json({ message: "Category name is required" });
 
-    await Category.deleteOne({ name });
-    await Item.deleteMany({ category: name });
+    const filter = getStoreFilter(req);
+    await Category.deleteOne({ ...filter, name });
+    await Item.deleteMany({ ...filter, category: name });
 
     res.status(200).json({ message: `Category "${name}" and its items deleted` });
   } catch (error) {
@@ -70,7 +73,8 @@ export const deleteCategory = async (req, res) => {
 // @route  GET /api/menu/items
 export const getItems = async (req, res) => {
   try {
-    const items = await Item.find().sort({ name: 1 });
+    const filter = getStoreFilter(req);
+    const items = await Item.find(filter).sort({ name: 1 });
     res.status(200).json(items);
   } catch (error) {
     console.error("Error fetching items:", error);
@@ -93,6 +97,7 @@ export const addItem = async (req, res) => {
       price,
       category: category.trim(),
       variants: variants?.length ? variants.map(v => v.trim()) : undefined,
+      ...(req.storeId ? { storeId: req.storeId } : {})
     });
 
     await newItem.save();
@@ -111,7 +116,9 @@ export const deleteItem = async (req, res) => {
 
     if (!id) return res.status(400).json({ message: "Item ID is required" });
 
-    const deleted = await Item.findByIdAndDelete(id);
+    // ensure we only delete items belonging to the current store (if provided)
+    const filter = getStoreFilter(req);
+    const deleted = await Item.findOneAndDelete({ _id: id, ...filter });
     if (!deleted) return res.status(404).json({ message: "Item not found" });
 
     res.status(200).json({ message: "Item deleted" });

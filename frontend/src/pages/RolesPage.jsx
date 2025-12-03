@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import API from "../api";
 import "../pages-css/roles.css";
 import logo from "../assets/salespoint-logo.png";
 
@@ -13,8 +14,7 @@ const Roles = () => {
   // Fetch users from backend
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/roles");
-      const data = await res.json();
+      const { data } = await API.get('/roles');
       if (Array.isArray(data)) setUsers(data);
       else setUsers([]);
     } catch (err) {
@@ -39,8 +39,7 @@ const Roles = () => {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/roles/${user._id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      await API.delete(`/roles/${user._id}`);
       setUsers(users.filter((_, i) => i !== index));
     } catch (err) {
       console.error(err);
@@ -57,12 +56,7 @@ const Roles = () => {
   const handleSave = async () => {
     const user = users[editingIndex];
     try {
-      const res = await fetch(`http://localhost:5000/api/roles/${user._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editData),
-      });
-      const updated = await res.json();
+      const { data: updated } = await API.put(`/roles/${user._id}`, editData);
       const newUsers = [...users];
       newUsers[editingIndex] = updated;
       setUsers(newUsers);
@@ -82,19 +76,7 @@ const Roles = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/roles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newUser),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        alert(errorData.message || "Failed to add user");
-        return;
-      }
-
-      const created = await res.json();
+      const { data: created } = await API.post('/roles', newUser);
       setUsers((prev) => [created, ...prev]);
       setShowAddModal(false);
       setNewUser({ name: "", email: "", role: "", date: "", phone: "" });

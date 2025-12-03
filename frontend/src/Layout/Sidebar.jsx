@@ -26,7 +26,9 @@ const Layout = () => {
           <div className="nav-toggle" onClick={() => setExpanded(!expanded)}>
             ☰
           </div>
-          <div className="logo">Sales Point</div>
+          <Link to="/" className="logo" onClick={() => { try { localStorage.removeItem('currentStore'); } catch(e){/*ignore*/} }}>
+            Sales Point
+          </Link>
         </div>
 
         <nav className="sidebar-nav">

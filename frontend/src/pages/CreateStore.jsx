@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import "../pages-css/createstore.css";
 import logo from "../assets/salespoint-logo.png";
 import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import "../pages-css/createstore.css";              
+import logo from "../assets/salespoint-logo.png";
+import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 function CreateStore() {
   const [storeData, setStoreData] = useState({
@@ -42,8 +48,24 @@ function CreateStore() {
         members: [{ email: storeData.email, role: "Creator" }],
       };
       delete payload.email;
+      const ownerEmail = userEmail || storeData.email;
 
-      const res = await fetch("http://localhost:5000/api/stores", {
+      // sanitize logo: backend expects a string (url/path). If user selected a file, skip it for now.
+      const logoValue = storeData.logo && storeData.logo instanceof File ? "" : storeData.logo || "";
+
+      const payload = {
+        name: storeData.name,
+        owner: storeData.owner,
+        ownerEmail,
+        phone: storeData.phone,
+        address: storeData.address,
+        currency: storeData.currency,
+        tax: storeData.tax ? Number(storeData.tax) : 0,
+        logo: logoValue,
+        members: [{ email: ownerEmail, role: "Creator" }]
+      };
+
+      const res = await fetch(`/api/stores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -60,6 +82,18 @@ function CreateStore() {
 
         // Redirect to store-specific dashboard WITH sidebar
         navigate(`/app/dashboard/${created._id}`);
+        alert(`Store "${created.name}" created successfully!`);
+        setStoreData({
+          name: "",
+          owner: "",
+          email: "",
+          phone: "",
+          address: "",
+          currency: "₱",
+          tax: "",
+          logo: null
+        });
+        navigate("/mystores");
       } else {
         alert(created.error || "Failed to create store.");
       }
@@ -72,6 +106,16 @@ function CreateStore() {
   const handleBack = () => {
     navigate("/"); // back to landing page
   };
+  const [userEmail, setUserEmail] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u && u.email) setUserEmail(u.email);
+      else setUserEmail("");
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div className="landing-container">

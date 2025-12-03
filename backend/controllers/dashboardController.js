@@ -7,10 +7,11 @@ import {
 
 export const getDashboardData = async (req, res) => {
   try {
-    const weeklySales = await getWeeklySales();
-    const summary = await getTodaySummary();
-    const recentOrders = await getRecentOrders();
-    const popularProducts = await getPopularProducts();
+    const storeId = req.storeId || null;
+    const weeklySales = await getWeeklySales(storeId);
+    const summary = await getTodaySummary(storeId);
+    const recentOrders = await getRecentOrders(storeId);
+    const popularProducts = await getPopularProducts(storeId);
 
     res.json({
       weeklySales,

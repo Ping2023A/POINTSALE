@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../pages-css/LandingPage.css";
 import logo from "../assets/salespoint-logo.png";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try { localStorage.removeItem('currentStore'); } catch (e) { /* ignore */ }
+  }, []);
 
   return (
     <div className="landing-container">

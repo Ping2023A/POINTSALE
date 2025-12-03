@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import API from "../api";
 import logo from "../assets/salespoint-logo.png";
 import "../pages-css/dashboard.css";
 
@@ -69,6 +70,7 @@ const Dashboard = () => {
   useEffect(() => {
     axios
       .get("http://localhost:5000/api/dashboard") // ✅ no storeId, global data
+    API.get('/dashboard')
       .then((res) => {
         setWeeklySales(res.data.weeklySales || []);
         setSummary(res.data.summary || {});

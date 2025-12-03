@@ -32,7 +32,16 @@ const Inventory = () => {
   // Fetch inventory from backend
   // ----------------------------------------
   useEffect(() => {
-    fetch("http://localhost:5000/api/inventory")
+    const headers = {};
+    try {
+      const raw = localStorage.getItem('currentStore');
+      if (raw) {
+        const store = JSON.parse(raw);
+        if (store && store._id) headers['x-store-id'] = store._id;
+      }
+    } catch (e) { }
+
+    fetch(`/api/inventory`, { headers })
       .then(res => res.json())
       .then(data => {
         setItems(data);
@@ -117,9 +126,18 @@ const Inventory = () => {
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/inventory", {
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const raw = localStorage.getItem('currentStore');
+        if (raw) {
+          const store = JSON.parse(raw);
+          if (store && store._id) headers['x-store-id'] = store._id;
+        }
+      } catch (e) {}
+
+      const res = await fetch(`/api/inventory`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(newItem),
       });
       const created = await res.json();
@@ -136,9 +154,18 @@ const Inventory = () => {
   // ----------------------------------------
   const handleUpdateItem = async (updatedItem) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/inventory/${updatedItem._id}`, {
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const raw = localStorage.getItem('currentStore');
+        if (raw) {
+          const store = JSON.parse(raw);
+          if (store && store._id) headers['x-store-id'] = store._id;
+        }
+      } catch (e) {}
+
+      const res = await fetch(`/api/inventory/${updatedItem._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(updatedItem),
       });
       const updated = await res.json();
@@ -157,9 +184,18 @@ const Inventory = () => {
     const item = items.find(i => (i._id === id) || (i.id === id));
     if (!item) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/inventory/${id}`, {
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const raw = localStorage.getItem('currentStore');
+        if (raw) {
+          const store = JSON.parse(raw);
+          if (store && store._id) headers['x-store-id'] = store._id;
+        }
+      } catch (e) {}
+
+      const res = await fetch(`/api/inventory/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ ...item, stock: item.stock + added }),
       });
       const updated = await res.json();
@@ -176,7 +212,15 @@ const Inventory = () => {
   const confirmDelete = async (id) => {
     if (!window.confirm("Delete this item?")) return;
     try {
-      await fetch(`http://localhost:5000/api/inventory/${id}`, { method: "DELETE" });
+      const headers = {};
+      try {
+        const raw = localStorage.getItem('currentStore');
+        if (raw) {
+          const store = JSON.parse(raw);
+          if (store && store._id) headers['x-store-id'] = store._id;
+        }
+      } catch (e) {}
+      await fetch(`/api/inventory/${id}`, { method: "DELETE", headers });
       setItems(prev => prev.filter(it => !((it._id === id) || (it.id === id))));
       setDeletingItem(null);
     } catch (err) {

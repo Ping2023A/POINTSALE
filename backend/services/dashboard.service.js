@@ -4,11 +4,17 @@ import Products from "../models/Product.js";
 
 // 1. Weekly sales (global)
 export const getWeeklySales = async () => {
+import { getStoreFilter } from "../middleware/store.middleware.js";
+
+// 1. Weekly sales
+export const getWeeklySales = async (storeId = null) => {
+  const filter = storeId ? { storeId } : {};
   return await Sales.aggregate([
+    { $match: filter },
     {
       $group: {
         _id: "$date",
-        total: { $sum: "$amount" },
+        total: { $sum: "$total" },
       },
     },
     { $sort: { _id: 1 } },
@@ -17,8 +23,11 @@ export const getWeeklySales = async () => {
 
 // 2. Today's summary (global)
 export const getTodaySummary = async () => {
+// 2. Today's summary
+export const getTodaySummary = async (storeId = null) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const filter = { createdAt: { $gte: today }, ...(storeId ? { storeId } : {}) };
 
   const todaysOrders = await Orders.find({
     createdAt: { $gte: today },
@@ -26,6 +35,10 @@ export const getTodaySummary = async () => {
 
   const totalSales = todaysOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const totalCustomers = new Set(todaysOrders.map((o) => o.customerId)).size;
+  const todaysOrders = await Orders.find(filter);
+
+  const totalSales = todaysOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const totalCustomers = new Set(todaysOrders.map(o => o.customerId)).size;
   const totalOrders = todaysOrders.length;
   const avgSale = totalOrders > 0 ? totalSales / totalOrders : 0;
 
@@ -44,4 +57,15 @@ export const getPopularProducts = async () => {
   return await Products.find()
     .sort({ sold: -1 })
     .limit(5);
+};
+// 3. Recent Orders
+export const getRecentOrders = async (storeId = null) => {
+  const filter = storeId ? { storeId } : {};
+  return await Orders.find(filter).sort({ createdAt: -1 }).limit(5);
+};
+
+// 4. Popular Products
+export const getPopularProducts = async (storeId = null) => {
+  const filter = storeId ? { storeId } : {};
+  return await Products.find(filter).sort({ sold: -1 }).limit(5);
 };
