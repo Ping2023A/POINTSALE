@@ -178,3 +178,34 @@
 .modal-buttons button:last-child:hover {
   background-color: #c0392b;
 }
+
+/* Inline validation styles */
+.field-error {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+
+.form-error {
+  color: #c0392b;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.readonly-field {
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+/* Add spacing under select (role) to separate it from the phone field */
+.modal-content select {
+  margin-bottom: 12px;
+}
+
+.modal-note {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+}

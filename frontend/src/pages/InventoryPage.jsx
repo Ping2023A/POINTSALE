@@ -13,6 +13,7 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   
   const [newItem, setNewItem] = useState({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
+  const [addErrors, setAddErrors] = useState({});
 
   // Sorting & filtering state
   const [filteredItems, setFilteredItems] = useState([]);
@@ -125,6 +126,18 @@ const Inventory = () => {
   // ----------------------------------------
   const handleAddItem = async (e) => {
     e.preventDefault();
+    // client-side validation: stock and price must be > 0
+    const errors = {};
+    if (!newItem.name || String(newItem.name).trim() === '') errors.name = 'Name is required';
+    if (!newItem.category) errors.category = 'Category is required';
+    const stockVal = Number(newItem.stock);
+    if (isNaN(stockVal) || stockVal <= 0) errors.stock = 'Stock must be greater than 0';
+    const priceVal = Number(newItem.price);
+    if (isNaN(priceVal) || priceVal <= 0) errors.price = 'Price must be greater than 0';
+
+    setAddErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
       const headers = { "Content-Type": "application/json" };
       try {
@@ -144,6 +157,7 @@ const Inventory = () => {
       setItems(prev => [...prev, created]);
       setNewItem({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
       setShowAddModal(false);
+      setAddErrors({});
     } catch (err) {
       console.error("Add error:", err);
     }
@@ -233,22 +247,35 @@ const Inventory = () => {
   // ----------------------------------------
   const EditItemForm = ({ item, categories, onSave, onCancel }) => {
     const [form, setForm] = useState({ name: item.name, category: item.category, price: item.price });
-    const handleSave = () => onSave({ ...item, ...form, price: Number(form.price) });
+    const [errors, setErrors] = useState({});
+    const handleSave = () => {
+      const err = {};
+      if (!form.name || String(form.name).trim() === '') err.name = 'Name is required';
+      const p = Number(form.price);
+      if (isNaN(p) || p <= 0) err.price = 'Price must be greater than 0';
+      if (!form.category) err.category = 'Category is required';
+      setErrors(err);
+      if (Object.keys(err).length > 0) return;
+      onSave({ ...item, ...form, price: Number(form.price) });
+    };
     return (
       <div>
         <div className="form-group">
           <label>Item Name:</label>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+          <input value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors(prev => ({ ...prev, name: undefined })); }} />
+          {errors.name && <div className="field-error">{errors.name}</div>}
         </div>
         <div className="form-group">
           <label>Category:</label>
-          <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+          <select value={form.category} onChange={e => { setForm({ ...form, category: e.target.value }); setErrors(prev => ({ ...prev, category: undefined })); }}>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+          {errors.category && <div className="field-error">{errors.category}</div>}
         </div>
         <div className="form-group">
           <label>Price:</label>
-          <input type="number" min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+          <input type="number" min="0" value={form.price} onChange={e => { setForm({ ...form, price: e.target.value }); setErrors(prev => ({ ...prev, price: undefined })); }} />
+          {errors.price && <div className="field-error">{errors.price}</div>}
         </div>
         <div className="modal-buttons">
           <button onClick={handleSave}>Save</button>
@@ -260,7 +287,16 @@ const Inventory = () => {
 
   const RestockForm = ({ item, onConfirm, onCancel }) => {
     const [addQty, setAddQty] = useState(0);
+    const [errors, setErrors] = useState({});
     const newStock = Number(item.stock) + Number(addQty);
+    const handleConfirm = () => {
+      const val = Number(addQty);
+      const err = {};
+      if (isNaN(val) || val <= 0) err.addQty = 'Enter a positive quantity to add';
+      setErrors(err);
+      if (Object.keys(err).length > 0) return;
+      onConfirm(Number(addQty));
+    };
     return (
       <div>
         <div className="form-group">
@@ -273,14 +309,15 @@ const Inventory = () => {
         </div>
         <div className="form-group">
           <label>Add Stock:</label>
-          <input type="number" min="0" value={addQty} onChange={e => setAddQty(e.target.value)} />
+          <input type="number" min="0" value={addQty} onChange={e => { setAddQty(e.target.value); setErrors(prev => ({ ...prev, addQty: undefined })); }} />
+          {errors.addQty && <div className="field-error">{errors.addQty}</div>}
         </div>
         <div className="form-group">
           <label>New Stock:</label>
           <input value={newStock} readOnly />
         </div>
         <div className="modal-buttons">
-          <button onClick={() => onConfirm(Number(addQty))}>Confirm</button>
+          <button onClick={handleConfirm}>Confirm</button>
           <button onClick={onCancel}>Cancel</button>
         </div>
       </div>
@@ -373,11 +410,13 @@ const Inventory = () => {
                 </div>
                 <div className="form-group">
                   <label>Stock:</label>
-                  <input type="number" min="0" value={newItem.stock} onChange={e => setNewItem({ ...newItem, stock: Number(e.target.value) })} required />
+                  <input type="number" min="0" value={newItem.stock} onChange={e => { setNewItem({ ...newItem, stock: Number(e.target.value) }); setAddErrors(prev => ({ ...prev, stock: undefined })); }} required />
+                  {addErrors.stock && <div className="field-error">{addErrors.stock}</div>}
                 </div>
                 <div className="form-group">
                   <label>Price:</label>
-                  <input type="number" min="0" step="0.01" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: Number(e.target.value) })} required />
+                  <input type="number" min="0" step="0.01" value={newItem.price} onChange={e => { setNewItem({ ...newItem, price: Number(e.target.value) }); setAddErrors(prev => ({ ...prev, price: undefined })); }} required />
+                  {addErrors.price && <div className="field-error">{addErrors.price}</div>}
                 </div>
                 <div className="modal-buttons">
                   <button type="submit">Add</button>
