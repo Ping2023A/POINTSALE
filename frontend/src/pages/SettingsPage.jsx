@@ -221,6 +221,25 @@ const SettingsPage = () => {
             </button>
           </div>
 
+          {/* Shift Mode */}
+          <div className="settings-card">
+            <h3>Shift Mode</h3>
+            <p>Choose how shifts rotate across trimesters/months.</p>
+            <select
+              value={settings.shiftMode || "tri-shift"}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, shiftMode: e.target.value }))
+              }
+            >
+              <option value="tri-shift">Tri-Shift (Morning → Afternoon → Night)</option>
+              <option value="dual-shift">Dual-Shift (Morning ↔ Afternoon)</option>
+              <option value="single-shift">Single-Shift (No rotation)</option>
+            </select>
+            <div style={{ marginTop: 8 }}>
+              <button disabled={saving} onClick={() => saveSetting("shiftMode", settings.shiftMode || "tri-shift")}>Save</button>
+            </div>
+          </div>
+
         </section>
       </main>
     </div>

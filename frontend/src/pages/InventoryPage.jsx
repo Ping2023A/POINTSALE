@@ -337,6 +337,10 @@ const Inventory = () => {
           <div className="top-icons">John Doe Owner</div>
         </header>
 
+        {loading && (
+          <div className="inventory-loading">Loading inventory…</div>
+        )}
+
         <section className="inventory-header">
           <h1>Inventory Management</h1>
           <button className="add-item-button" onClick={() => setShowAddModal(true)}>Add New Item</button>
@@ -390,8 +394,8 @@ const Inventory = () => {
 
         {/* Modals */}
         {showAddModal && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="inventory-modal-overlay">
+            <div className="inventory-modal-content">
               <h2>Add New Item</h2>
               <form onSubmit={handleAddItem}>
                 <div className="form-group">
@@ -424,8 +428,8 @@ const Inventory = () => {
         )}
 
         {editingItem && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="inventory-modal-overlay">
+            <div className="inventory-modal-content">
               <h2>Edit Item</h2>
               <EditItemForm item={editingItem} categories={categories} onSave={handleUpdateItem} onCancel={() => setEditingItem(null)} />
             </div>
@@ -433,8 +437,8 @@ const Inventory = () => {
         )}
 
         {restockItem && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="inventory-modal-overlay">
+            <div className="inventory-modal-content">
               <h2>Restock Item</h2>
               <RestockForm item={restockItem} onConfirm={(added) => confirmRestock(restockItem._id || restockItem.id, added)} onCancel={() => setRestockItem(null)} />
             </div>
@@ -442,8 +446,8 @@ const Inventory = () => {
         )}
 
         {deletingItem && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="inventory-modal-overlay">
+            <div className="inventory-modal-content">
               <h3>Confirm Delete</h3>
               <p>Are you sure you want to delete <strong>{deletingItem.name}</strong>?</p>
               <div className="modal-buttons">

@@ -214,8 +214,8 @@ const Roles = () => {
 
         {/* Edit Modal */}
         {editingIndex !== null && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="roles-modal-overlay">
+            <div className="roles-modal-content">
               <h3>Edit User</h3>
               <input
                 type="text"
@@ -290,8 +290,8 @@ const Roles = () => {
 
         {/* Add User Modal */}
         {showAddModal && (
-          <div className="modal">
-            <div className="modal-content">
+          <div className="roles-modal-overlay">
+            <div className="roles-modal-content">
               <h3>Add New User</h3>
               <input
                 type="text"

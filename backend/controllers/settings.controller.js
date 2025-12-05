@@ -15,6 +15,7 @@ export const initializeSettings = async () => {
     { key: "cashPayments", value: 0 },
     { key: "cardPayments", value: 0 },
     { key: "mobilePayments", value: 0 },
+    { key: "shiftMode", value: "tri-shift" },
   ];
 
   for (const def of defaults) {
