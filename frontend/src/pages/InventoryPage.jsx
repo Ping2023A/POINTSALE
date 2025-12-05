@@ -13,6 +13,7 @@ const Inventory = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   
   const [newItem, setNewItem] = useState({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
+  const [addErrors, setAddErrors] = useState({});
 
   // Sorting & filtering state
   const [filteredItems, setFilteredItems] = useState([]);
@@ -125,6 +126,18 @@ const Inventory = () => {
   // ----------------------------------------
   const handleAddItem = async (e) => {
     e.preventDefault();
+    // client-side validation: stock and price must be > 0
+    const errors = {};
+    if (!newItem.name || String(newItem.name).trim() === '') errors.name = 'Name is required';
+    if (!newItem.category) errors.category = 'Category is required';
+    const stockVal = Number(newItem.stock);
+    if (isNaN(stockVal) || stockVal <= 0) errors.stock = 'Stock must be greater than 0';
+    const priceVal = Number(newItem.price);
+    if (isNaN(priceVal) || priceVal <= 0) errors.price = 'Price must be greater than 0';
+
+    setAddErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
       const headers = { "Content-Type": "application/json" };
       try {
@@ -144,6 +157,7 @@ const Inventory = () => {
       setItems(prev => [...prev, created]);
       setNewItem({ name: '', category: 'Hot Drinks', stock: 0, price: 0 });
       setShowAddModal(false);
+      setAddErrors({});
     } catch (err) {
       console.error("Add error:", err);
     }
@@ -369,11 +383,13 @@ const Inventory = () => {
                 </div>
                 <div className="form-group">
                   <label>Stock:</label>
-                  <input type="number" min="0" value={newItem.stock} onChange={e => setNewItem({ ...newItem, stock: Number(e.target.value) })} required />
+                  <input type="number" min="0" value={newItem.stock} onChange={e => { setNewItem({ ...newItem, stock: Number(e.target.value) }); setAddErrors(prev => ({ ...prev, stock: undefined })); }} required />
+                  {addErrors.stock && <div className="field-error">{addErrors.stock}</div>}
                 </div>
                 <div className="form-group">
                   <label>Price:</label>
-                  <input type="number" min="0" step="0.01" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: Number(e.target.value) })} required />
+                  <input type="number" min="0" step="0.01" value={newItem.price} onChange={e => { setNewItem({ ...newItem, price: Number(e.target.value) }); setAddErrors(prev => ({ ...prev, price: undefined })); }} required />
+                  {addErrors.price && <div className="field-error">{addErrors.price}</div>}
                 </div>
                 <div className="modal-buttons">
                   <button type="submit">Add</button>

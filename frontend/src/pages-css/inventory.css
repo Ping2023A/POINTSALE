@@ -219,3 +219,18 @@
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* Inline validation styles (similar to roles) */
+.field-error {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: -6px;
+  margin-bottom: 8px;
+}
+
+.form-error {
+  color: #c0392b;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0;
+}
