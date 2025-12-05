@@ -4,6 +4,9 @@ import Shift from "../models/Shift.js";
 import AuditLog from "../models/AuditLog.js";
 import { getStoreFilter } from "../middleware/store.middleware.js";
 
+const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+const PHONE_REGEX = /^[0-9]{10,13}$/;
+
 const getUserFromReq = (req) => {
   const email = req.user?.email || req.body?.userEmail || 'system@local';
   const role = req.user?.role || req.body?.userRole || 'System';
@@ -14,7 +17,26 @@ const getUserFromReq = (req) => {
 export const getRoles = async (req, res) => {
   try {
     const filter = getStoreFilter(req);
-    const roles = await Role.find(filter).sort({ createdAt: -1 });
+    // Exclude soft-deleted
+    const base = { ...(filter || {}), is_deleted: false };
+
+    // Support search via ?q=term
+    const q = (req.query.q || req.query.search || '').trim();
+    let roles;
+    if (q) {
+      const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      roles = await Role.find({
+        ...base,
+        $or: [
+          { name: re },
+          { email: re },
+          { role: re },
+          { phone: re }
+        ]
+      }).sort({ createdAt: -1 });
+    } else {
+      roles = await Role.find(base).sort({ createdAt: -1 });
+    }
     res.json(roles);
   } catch (err) {
     console.error(err);
@@ -25,15 +47,34 @@ export const getRoles = async (req, res) => {
 // Create a new role
 export const createRole = async (req, res) => {
   try {
-    const { email } = req.body;
-
-    // Prevent duplicate emails
+    const { name, email, role: roleName, phone } = req.body;
     const filter = getStoreFilter(req);
-    const existing = await Role.findOne({ email, ...filter });
+
+    // Basic required validation
+    if (!name || !email || !roleName || !phone) return res.status(400).json({ message: 'Missing required fields' });
+
+    // Validate formats
+    if (!EMAIL_REGEX.test(email)) return res.status(400).json({ message: 'Invalid email format' });
+    if (!PHONE_REGEX.test(String(phone))) return res.status(400).json({ message: 'Invalid phone format' });
+
+    // Validate role enum
+    const allowed = ['Owner','Admin','Manager','Staff'];
+    if (!allowed.includes(roleName)) return res.status(400).json({ message: 'Invalid role' });
+
+    // Prevent duplicate emails within same store
+    const existing = await Role.findOne({ email, ...(filter || {}) });
     if (existing) return res.status(400).json({ message: "Email already exists" });
 
-    // attach storeId if present
-    const toCreate = { ...req.body, ...(req.storeId ? { storeId: req.storeId } : {}) };
+    // Prepare creation payload — hiringDate assigned server-side; ignore any client-provided hiringDate
+    const toCreate = {
+      name,
+      email,
+      role: roleName,
+      phone: String(phone),
+      hiringDate: new Date(),
+      ...(req.storeId ? { storeId: req.storeId } : {})
+    };
+
     const role = await Role.create(toCreate);
 
     // Create default morning shifts for the new role for the current week (Mon-Fri)
@@ -98,7 +139,29 @@ export const updateRole = async (req, res) => {
     const id = req.params.id;
     const filter = getStoreFilter(req);
     const before = await Role.findOne({ _id: id, ...filter }).lean();
-    const role = await Role.findOneAndUpdate({ _id: id, ...filter }, req.body, { new: true, runValidators: true });
+
+    if (!before) return res.status(404).json({ message: 'Role not found' });
+
+    // Prevent editing hiringDate or is_deleted via API
+    const payload = { ...req.body };
+    delete payload.hiringDate;
+    delete payload.is_deleted;
+
+    // If email is changing, ensure uniqueness
+    if (payload.email && String(payload.email) !== String(before.email)) {
+      if (!EMAIL_REGEX.test(payload.email)) return res.status(400).json({ message: 'Invalid email format' });
+      const conflict = await Role.findOne({ email: payload.email, _id: { $ne: id }, ...(filter || {}) });
+      if (conflict) return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // If phone provided, validate
+    if (payload.phone && !PHONE_REGEX.test(String(payload.phone))) return res.status(400).json({ message: 'Invalid phone format' });
+
+    // If role provided, validate enum
+    const allowed = ['Owner','Admin','Manager','Staff'];
+    if (payload.role && !allowed.includes(payload.role)) return res.status(400).json({ message: 'Invalid role' });
+
+    const role = await Role.findOneAndUpdate({ _id: id, ...filter }, payload, { new: true, runValidators: true });
     if (!role) return res.status(404).json({ message: "Role not found" });
 
     // Audit log: Edited user — build diff summary
@@ -148,7 +211,8 @@ export const deleteRole = async (req, res) => {
   try {
     const id = req.params.id;
     const filter = getStoreFilter(req);
-    const role = await Role.findOneAndDelete({ _id: id, ...filter });
+    // Soft delete: set is_deleted = true
+    const role = await Role.findOneAndUpdate({ _id: id, ...filter }, { is_deleted: true }, { new: true });
     if (!role) return res.status(404).json({ message: "Role not found" });
 
     // Audit log: Deleted user
