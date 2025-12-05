@@ -23,7 +23,9 @@ const app = express();
 
 // ✅ Middleware
 app.use(cors());
-app.use(express.json());
+// increase body size limits to accommodate larger payloads (e.g. bulk requests)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Attach store context (reads x-store-id header / query / body)
 app.use(attachStore);
@@ -48,16 +50,28 @@ const MONGO_URI =
   process.env.MONGO_URI ||
   "mongodb+srv://sdecastro_db_user:seantest123@please.cospmds.mongodb.net/?appName=please";
 
-mongoose
-  .connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+// Recent mongoose/mongodb drivers ignore these legacy options (they're no-ops)
+// and will warn if provided. Connect without them.
+mongoose.connect(MONGO_URI)
   .then(async () => {
     console.log("MongoDB connected");
     await initializeSettings(); // ensures defaults exist before any API call
   })
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Global error handler for oversized payloads and other errors
+app.use((err, req, res, next) => {
+  // body-parser / express throws a PayloadTooLargeError with status 413
+  if (!err) return next();
+  const isPayloadTooLarge = err.status === 413 || err.type === 'entity.too.large' || err.name === 'PayloadTooLargeError';
+  if (isPayloadTooLarge) {
+    console.warn('PayloadTooLargeError:', req.originalUrl, (req.headers['content-length'] || 'unknown') + ' bytes');
+    return res.status(413).json({ error: 'Payload too large. Consider increasing server limits or using file upload endpoints.' });
+  }
+  // Fallback: log and forward
+  console.error(err);
+  return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
 
 // ✅ Start server
 const PORT = process.env.PORT || 5000;

@@ -125,24 +125,57 @@
   background-color: #f5f5f5;
 }
 
-/* Modal styles */
-.modal {
+.inventory-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 2200;
+  padding: 18px;
 }
 
-.modal-content {
+.inventory-modal-content {
   background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  min-width: 400px;
+  padding: 28px 28px;
+  border-radius: 10px;
+  min-width: 420px;
+  max-width: 96%;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+
+.inventory-modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.inventory-modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+.inventory-modal-content .form-group label {
+  margin-bottom: 6px;
+  display: block;
+  font-weight: 600;
+}
+
+.inventory-modal-content input,
+.inventory-modal-content select,
+.inventory-modal-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.inventory-modal-content .modal-buttons {
+  margin-top: 14px;
 }
 
 .form-group {

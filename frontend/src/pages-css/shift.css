@@ -1,3 +1,163 @@
+/* --- Calendar Styles --- */
+.calendar-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Modern calendar modal */
+.calendar-modal {
+  width: 720px; /* reduced size to avoid full-screen feel */
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  max-height: 70vh;
+  border-radius: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.calendar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(15,56,110,0.06);
+}
+.calendar-modal-header .cal-header-left,
+.calendar-modal-header .cal-header-center,
+.calendar-modal-header .cal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-header-left { flex: 0 0 auto; }
+.cal-header-center { flex: 1 1 auto; display: flex; justify-content: center; }
+.cal-header-right { flex: 0 0 auto; display: flex; gap: 10px; align-items: center; }
+
+.cal-arrow, .today-btn, .calendar-close, .cal-month-select, .cal-year-input {
+  background: #fff;
+  border: 1px solid rgba(15,56,110,0.06);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #0b4da6;
+  font-weight: 600;
+  transition: background 0.12s, transform 0.08s, box-shadow 0.12s;
+}
+.cal-arrow:hover, .today-btn:hover, .calendar-close:hover { background: rgba(11,94,215,0.06); transform: translateY(-2px); }
+.cal-arrow { min-width: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.today-btn { background: linear-gradient(90deg,#0b79e6 0%, #075bb5 100%); color: #fff; }
+.today-btn:hover { filter: brightness(0.95); transform: translateY(-1px); }
+.calendar-close { background: transparent; border: none; color: #666; padding: 6px 8px; font-size: 16px; }
+.calendar-close:hover { color: #d32f2f; background: rgba(0,0,0,0.03); border-radius: 6px; }
+.cal-month-select { padding: 8px 10px; border-radius: 8px; }
+.cal-year-input { width: 100px; padding: 8px 10px; border-radius: 8px; }
+
+.calendar-table th { text-align: center; font-weight: 700; padding: 10px 6px; color: #475569; font-size: 13px; background: transparent; border-bottom: none; }
+.calendar-table th { text-align: center; font-weight: 700; padding: 10px 6px; color: #475569; font-size: 13px; background: transparent; border-bottom: none; }
+
+/* Scroll wrapper keeps the table layout intact and provides scrolling when needed */
+.calendar-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  width: 100%;
+}
+
+.calendar-day { padding: 10px; min-height: 84px; vertical-align: top; border-radius: 10px; transition: background .12s, box-shadow .12s, transform .12s; box-sizing: border-box; }
+.calendar-day > div { display:flex; flex-direction: column; gap: 8px; align-items: center; }
+.calendar-day > div { display:flex; flex-direction: column; gap: 8px; }
+.calendar-day .date-num { font-weight: 700; font-size: 14px; color: #0f172a; }
+.calendar-day .calendar-shifts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.calendar-day .calendar-shifts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.calendar-day.week-selected { background: linear-gradient(90deg, rgba(11,94,215,0.06), rgba(4,96,185,0.02)); border-radius: 10px; }
+.calendar-day.selected-date { outline: 2px solid rgba(11,94,215,0.16); box-shadow: 0 12px 32px rgba(11,94,215,0.08); transform: translateY(-3px); }
+.calendar-day.calendar-empty { background: transparent; }
+
+/* grid month view */
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 6px 4px; }
+.calendar-weekday { text-align: center; font-weight: 800; color: #ffffff; padding: 10px 8px; background: #0b5ed7; border-radius: 8px; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; padding: 8px; }
+.calendar-empty-grid { background: transparent; min-height: 88px; border-radius: 8px; }
+.calendar-day { background: #fff; border: 1px solid rgba(15,56,110,0.04); min-height: 88px; padding: 8px; box-sizing: border-box; }
+.calendar-day .date-num { font-weight: 700; font-size: 14px; color: #0f172a; text-align: center; }
+
+@media (max-width: 700px) {
+  .calendar-grid { gap: 6px; padding: 6px; }
+  .calendar-empty-grid, .calendar-day { min-height: 72px; }
+  .calendar-weekday { font-size: 12px; }
+  .calendar-modal-header { padding: 8px; }
+  .cal-month-select { font-size: 13px; }
+  .cal-year-input { width: 70px; }
+  .today-btn { padding: 6px 8px; font-size: 13px; }
+}
+
+/* dot indicators for shift previews */
+.calendar-shift-dot { display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:4px; box-shadow: 0 2px 6px rgba(2,6,23,0.06); }
+.calendar-shift-dot.morning { background: linear-gradient(180deg,#ff7a7a,#e53935); }
+.calendar-shift-dot.afternoon { background: linear-gradient(180deg,#6ea8ff,#1e88e5); }
+.calendar-shift-dot.night { background: linear-gradient(180deg,#6ee7b7,#059669); }
+.calendar-shift-dot.flexible { background: linear-gradient(180deg,#ffd166,#f59e0b); }
+
+.calendar-month-cell { cursor: pointer; border-radius: 12px; padding: 14px; background: linear-gradient(180deg,#ffffff,#f6fbff); transition: transform .16s cubic-bezier(.2,.9,.3,1), box-shadow .16s; display:flex; flex-direction:column; align-items:center; gap:6px; border:1px solid rgba(10,25,47,0.03); }
+.calendar-month-cell { cursor: pointer; border-radius: 12px; padding: 14px; background: linear-gradient(180deg,#ffffff,#f6fbff); transition: transform .16s cubic-bezier(.2,.9,.3,1), box-shadow .16s; display:flex; flex-direction:column; align-items:center; gap:6px; border:1px solid rgba(10,25,47,0.03); min-height:120px; }
+.calendar-day.weekend { background: transparent; }
+.calendar-day.weekend .date-num { color: #94a3b8; }
+.calendar-day.weekend .calendar-shifts:empty { display: none; }
+.calendar-table td, .calendar-table th { width: calc(100% / 7); }
+.calendar-table td { height: 120px; box-sizing: border-box; padding: 6px; display: flex; align-items: flex-start; justify-content: center; }
+
+/* ensure content inside the calendar cell doesn't overflow */
+.calendar-day, .calendar-empty { width: 100%; height: 100%; overflow: hidden; }
+.calendar-month-cell:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(6,20,52,0.06); }
+.calendar-month-cell strong { font-size: 15px; color: #0b4da6; }
+.mini-preview { margin-top: 6px; font-size: 13px; color: #475569; display:flex; gap: 8px; align-items:center; }
+.month-count { background: #eff6ff; color: #0b5ed7; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+
+/* Event pills and responsive layout for month grid */
+.event-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: 1px solid rgba(2,6,23,0.04);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.event-pill.morning { border-left: 4px solid #e53935; }
+.event-pill.afternoon { border-left: 4px solid #1e88e5; }
+.event-pill.night { border-left: 4px solid #059669; }
+.event-pill.flexible { border-left: 4px solid #f59e0b; }
+.more-indicator {
+  font-size: 12px;
+  color: #0b5ed7;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+/* highlight today and selected date */
+.calendar-day.today { outline: 2px solid rgba(34,197,94,0.12); }
+.calendar-day.selected-date { outline: 2px solid rgba(11,94,215,0.18); box-shadow: 0 12px 28px rgba(11,94,215,0.06); }
+
+/* make the grid responsive */
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; padding: 8px; }
+.calendar-empty-grid { background: transparent; min-height: 64px; border-radius: 6px; }
+.calendar-day { background: #fff; border: 1px solid rgba(15,56,110,0.06); min-height: 88px; padding: 8px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; }
+
+@media (max-width: 900px) {
+  .calendar-modal { width: calc(100% - 24px); height: auto; max-height: 80vh; }
+  .calendar-day { min-height: 72px; }
+}
+
+/* Accessibility focus */
+.calendar-modal:focus { outline: none; }
 /* --- Global Layout --- */
 .shift-page {
   margin: 0;

@@ -15,6 +15,7 @@ export default function ShiftSchedule() {
   });
 
   const [employees, setEmployees] = useState([]);
+  const safeEmployees = employees || [];
   const [shifts, setShifts] = useState({});
   const [employeeAvailability, setEmployeeAvailability] = useState({}); // { empId: [YYYY-MM-DD] }
   const [serverSnapshot, setServerSnapshot] = useState({}); // snapshot of server shifts to detect deletions
@@ -30,8 +31,11 @@ export default function ShiftSchedule() {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [moveInfo, setMoveInfo] = useState({ empId: null, fromDate: null });
   const [selectedMoveDate, setSelectedMoveDate] = useState(null);
-  // Undo state for move action
-  const [undoInfo, setUndoInfo] = useState(null); // { empId, fromDate, toDate, prevSnapshot, moved }
+  // Employee actions and On Leave tracking
+  const [, setShowEmployeeActionsModal] = useState(false);
+  const [employeeLeaveDays, setEmployeeLeaveDays] = useState({}); // { empId: [YYYY-MM-DD] }
+  // Undo state for leave removals
+  const [undoInfo, setUndoInfo] = useState(null); // { empId, removed, prevSnapshot }
   const undoTimerRef = useRef(null);
 
   const defaultShiftTimes = {
@@ -46,6 +50,33 @@ export default function ShiftSchedule() {
     d.setDate(d.getDate() + i);
     return d;
   });
+
+  // Helper to deep-merge two shift maps { empId: { date: [shifts] } }
+  const mergeShiftMaps = (a = {}, b = {}) => {
+    const out = { ...a };
+    Object.entries(b).forEach(([empId, days]) => {
+      out[empId] = { ...(a[empId] || {}), ...(days || {}) };
+    });
+    return out;
+  };
+
+  // Normalize shifts map: remove exact-duplicate shifts per employee/date (by type+start+end)
+  const normalizeShiftsMap = (src = {}) => {
+    const out = {};
+    Object.entries(src).forEach(([empId, days]) => {
+      out[empId] = out[empId] || {};
+      Object.entries(days || {}).forEach(([date, dayShifts]) => {
+        const seen = new Set();
+        const deduped = [];
+        (dayShifts || []).forEach(s => {
+          const key = `${s.type}::${s.time?.start || ''}::${s.time?.end || ''}`;
+          if (!seen.has(key)) { seen.add(key); deduped.push(s); }
+        });
+        out[empId][date] = deduped;
+      });
+    });
+    return out;
+  };
 
   useEffect(() => {
     // Fetch employees from backend roles endpoint
@@ -72,6 +103,22 @@ export default function ShiftSchedule() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
+  // Load settings (incl. shiftMode) so rotation behavior follows settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await API.get(`/settings`);
+        const settingsArray = res.data || [];
+        const obj = {};
+        settingsArray.forEach(s => (obj[s.key] = s.value));
+        if (obj.shiftMode) setShiftMode(obj.shiftMode);
+      } catch (err) {
+        console.error('Failed to load settings for shift page:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   // Load shifts for the current week whenever week changes
   useEffect(() => {
     const loadWeekShifts = async () => {
@@ -90,7 +137,70 @@ export default function ShiftSchedule() {
         });
 
         // Merge into existing shifts state (preserve local-only entries)
-        setShifts(prev => ({ ...prev, ...map }));
+        setShifts(prev => mergeShiftMaps(prev, map));
+
+        // Auto-fill missing future trimester/month shifts based on rotation and existing pivots
+        try {
+          const filled = JSON.parse(JSON.stringify(map));
+          const currentYear = new Date().getFullYear();
+          const yearsToEnsure = [currentYear, currentYear + 1];
+          let madeChanges = false;
+
+          const getDatesBetween = (start, end) => {
+            const dates = [];
+            let d = new Date(start);
+            while (d <= end) {
+              dates.push(new Date(d));
+              d.setDate(d.getDate() + 1);
+            }
+            return dates;
+          };
+
+          const buildTrimestersForYear = (yr) => ([
+            { start: new Date(yr, 0, 1), end: new Date(yr, 3, 30) },
+            { start: new Date(yr, 4, 1), end: new Date(yr, 7, 31) },
+            { start: new Date(yr, 8, 1), end: new Date(yr, 11, 31) },
+          ]);
+
+          // For each employee with at least one shift, use earliest shift as pivot
+          const allEmpIds = Array.from(new Set([...Object.keys(filled), ...employees.map(e => e.id?.toString ? e.id.toString() : e.id)]));
+          for (const empId of allEmpIds) {
+            const empMap = filled[empId] || {};
+            const dates = Object.keys(empMap).sort();
+            if (!dates.length) continue; // no pivot
+            const pivotDateStr = dates[0];
+            const pivotShifts = empMap[pivotDateStr] || [];
+            if (!pivotShifts.length) continue;
+            const pivotShiftType = pivotShifts[0].type;
+            const pivotDate = new Date(pivotDateStr + 'T00:00:00');
+
+            // Ensure trimesters for current and next year are populated
+            for (const yr of yearsToEnsure) {
+              const yrsTris = buildTrimestersForYear(yr);
+              for (const tri of yrsTris) {
+                const triDates = getDatesBetween(tri.start, tri.end);
+                for (const d of triDates) {
+                  const dStr = d.toISOString().split('T')[0];
+                  if (empMap[dStr] && empMap[dStr].length) continue; // already assigned
+                    const assigned = computeAssignedShiftByTrimester(pivotShiftType, pivotDate, d);
+                  if (!filled[empId]) filled[empId] = {};
+                  filled[empId][dStr] = [{ type: assigned, time: defaultShiftTimes[assigned] || { start: '', end: '' }, status: 'assigned' }];
+                  madeChanges = true;
+                }
+              }
+            }
+          }
+
+          if (madeChanges) {
+            // Merge filled into state and persist to server
+            const merged = mergeShiftMaps(shifts, filled);
+            const normalizedMerged = normalizeShiftsMap(merged);
+            setShifts(prev => normalizeShiftsMap(mergeShiftMaps(prev, filled)));
+            await saveShiftsToServer({ silent: true }, normalizedMerged);
+          }
+        } catch (e) {
+          console.error('Auto-fill rotation failed:', e);
+        }
 
         // Save server snapshot for deletion detection
         setServerSnapshot(JSON.parse(JSON.stringify(map)));
@@ -137,6 +247,55 @@ export default function ShiftSchedule() {
         });
       });
 
+      // Additional: detect server-side shifts that would overlap with new shifts and add deletion markers
+      // Helpers to compute intervals similar to backend
+      const timeToMinutes = (t) => {
+        if (!t || typeof t !== 'string') return null;
+        const [hh, mm] = t.split(":").map(Number);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+        return hh * 60 + mm;
+      };
+      const getIntervalMs = (shift) => {
+        const base = new Date(shift.date + 'T00:00:00Z').getTime();
+        const sMin = timeToMinutes(shift.start);
+        const eMin = timeToMinutes(shift.end);
+        if (sMin == null || eMin == null) return null;
+        const startMs = base + sMin * 60 * 1000;
+        let endMs = base + eMin * 60 * 1000;
+        if (eMin <= sMin) endMs = base + (eMin + 24 * 60) * 60 * 1000;
+        return { startMs, endMs };
+      };
+      const intervalsOverlap = (a, b) => {
+        if (!a || !b) return false;
+        return a.startMs < b.endMs && b.startMs < a.endMs;
+      };
+
+      // Build list of new (non-deletion) intervals to compare against serverSnapshot
+      const newIntervals = payload.map(p => ({ src: p, int: getIntervalMs(p) }));
+      Object.entries(serverSnapshot || {}).forEach(([empId, days]) => {
+          Object.entries(days || {}).forEach(([date, dayShifts]) => {
+            // dayShifts might be array of shift objects from serverSnapshot
+          // For each server-side shift on this date, check if any new interval overlaps
+          const serverShiftList = dayShifts || [];
+          for (const ss of serverShiftList) {
+            const serverShift = { employeeId: empId, date, start: ss.time?.start || ss.start || '', end: ss.time?.end || ss.end || '' };
+            const serverInt = getIntervalMs(serverShift);
+            if (!serverInt) continue;
+            for (const ni of newIntervals) {
+              if (!ni.int) continue;
+              // Only consider overlaps for the same employee
+              if (String(ni.src.employeeId) !== String(empId)) continue;
+              if (intervalsOverlap(ni.int, serverInt)) {
+                // add deletion marker if not already scheduled
+                const exists = deletionMarkers.find(d => d.employeeId === empId && d.date === date);
+                if (!exists) deletionMarkers.push({ employeeId: empId, date, _delete: true });
+                break;
+              }
+            }
+          }
+        });
+      });
+
       const finalPayload = [...payload, ...deletionMarkers];
       if (finalPayload.length === 0) {
         if (!opts.silent) alert('No shifts to save or only temporary employees present');
@@ -150,9 +309,14 @@ export default function ShiftSchedule() {
       setServerSnapshot(JSON.parse(JSON.stringify(source)));
       return res;
     } catch (err) {
-      console.error('Failed to save shifts:', err);
-      if (!opts.silent) alert('Failed to save shifts to server');
-      throw err;
+      // surface server-provided messages when available
+      const serverMsg = err?.response?.data?.message || err?.message || 'Unknown error';
+      console.error('Failed to save shifts:', err, serverMsg);
+      if (!opts.silent) alert(`Failed to save shifts: ${serverMsg}`);
+      // throw a normalized Error so callers can inspect message
+      const e = new Error(serverMsg);
+      e.original = err;
+      throw e;
     }
   };
 
@@ -166,6 +330,20 @@ export default function ShiftSchedule() {
     d.setDate(d.getDate() + 7);
     setCurrentWeekStart(d);
   };
+
+  // Helper: get Monday (week start) for a given date
+  const getWeekStartMonday = (date) => {
+    const d = date instanceof Date ? new Date(date) : new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // if Sunday, go back 6 days
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    monday.setHours(0,0,0,0);
+    return monday;
+  };
+
+  // countShiftsInMonth removed — calendar now shows date-only view (no per-employee counts)
+
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -195,7 +373,7 @@ export default function ShiftSchedule() {
           map[emp][s.date] = map[emp][s.date] || [];
           map[emp][s.date].push({ type: s.type, time: { start: s.start || defaultShiftTimes[s.type]?.start || '', end: s.end || defaultShiftTimes[s.type]?.end || '' }, status: s.status });
         });
-        setShifts(prev => ({ ...prev, ...map }));
+        setShifts(prev => mergeShiftMaps(prev, map));
       } catch (e) {
         console.error('Failed to load shifts after creating employee:', e);
       }
@@ -209,8 +387,16 @@ export default function ShiftSchedule() {
 
   const openShiftModal = (employee, date) => {
     setSelectedShift({ employee, date });
-    setShiftType("morning");
-    setShiftTime(defaultShiftTimes["morning"]);
+    // default shift type should follow current shiftMode's first option
+    const rotations = {
+      "tri-shift": ["morning", "afternoon", "night"],
+      "dual-shift": ["morning", "afternoon"],
+      "single-shift": ["morning"],
+    };
+    const available = rotations[shiftMode] || rotations["tri-shift"];
+    const defaultType = available[0] || "morning";
+    setShiftType(defaultType);
+    setShiftTime(defaultShiftTimes[defaultType]);
     setShowShiftModal(true);
   };
 
@@ -241,6 +427,64 @@ export default function ShiftSchedule() {
     return h + m / 60;
   };
 
+  // Helpers: map a date to trimester index, compute equivalent date in another trimester
+  const getTrimesterIndexForDate = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
+    for (let i = 0; i < trimesters.length; i++) {
+      const { start, end } = trimesters[i];
+      const s = new Date(start); s.setHours(0,0,0,0);
+      const e = new Date(end); e.setHours(23,59,59,999);
+      if (d >= s && d <= e) return i;
+    }
+    return -1;
+  };
+
+  const getEquivalentDateInTrimester = (date, targetTrimesterIdx) => {
+    const srcIdx = getTrimesterIndexForDate(date);
+    if (srcIdx === -1) return null;
+    const srcTrim = trimesters[srcIdx];
+    const tgtTrim = trimesters[targetTrimesterIdx];
+    if (!tgtTrim) return null;
+    const srcStart = new Date(srcTrim.start); srcStart.setHours(0,0,0,0);
+    const tgtStart = new Date(tgtTrim.start); tgtStart.setHours(0,0,0,0);
+    const d = new Date(date); d.setHours(0,0,0,0);
+    const offsetDays = Math.round((d - srcStart) / (24 * 60 * 60 * 1000));
+    const candidate = new Date(tgtStart);
+    candidate.setDate(candidate.getDate() + offsetDays);
+    if (candidate < tgtTrim.start || candidate > tgtTrim.end) return null;
+    return candidate;
+  };
+  // Rotation helpers using trimester (semester) delta so rotation persists across years
+  // Map a date to a global trimester index (year * 3 + localTrimIndex)
+  const getGlobalTrimesterIndex = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
+    const year = d.getFullYear();
+    const m = d.getMonth();
+    // local trimester mapping: Jan-Apr => 0, May-Aug => 1, Sep-Dec => 2
+    let local = 0;
+    if (m >= 0 && m <= 3) local = 0;
+    else if (m >= 4 && m <= 7) local = 1;
+    else local = 2;
+    return year * 3 + local;
+  };
+
+  const computeAssignedShiftByTrimester = (baseShift, baseDate, targetDate) => {
+    const rotations = {
+      "tri-shift": ["morning", "afternoon", "night"],
+      "dual-shift": ["morning", "afternoon"],
+      "single-shift": [baseShift || "morning"],
+    };
+    const mode = shiftMode || "tri-shift";
+    const rotation = rotations[mode] || rotations["tri-shift"];
+    const baseIdx = Math.max(0, rotation.indexOf(baseShift));
+    const baseTrim = getGlobalTrimesterIndex(baseDate);
+    const targetTrim = getGlobalTrimesterIndex(targetDate);
+    const delta = targetTrim - baseTrim;
+    const rotLen = rotation.length || 1;
+    const shiftIdx = ((baseIdx + delta) % rotLen + rotLen) % rotLen;
+    return rotation[shiftIdx] || rotation[0];
+  };
+
   const addShift = async () => {
     const dateStr = selectedShift.date.toISOString().split('T')[0];
     const empId = selectedShift.employee.id;
@@ -252,19 +496,45 @@ export default function ShiftSchedule() {
     const overlap = dayShifts.some(s => {
       const sStart = parseTimeToDecimal(s.time.start);
       const sEnd = parseTimeToDecimal(s.time.end);
-      return (newStart < sEnd && newEnd > sStart);
+      // handle overnight by normalizing end <= start to next-day in decimal space
+      let ns = newStart, ne = newEnd;
+      let ss = sStart, se = sEnd;
+      if (ne <= ns) ne += 24;
+      if (se <= ss) se += 24;
+      return (ns < se && ne > ss);
     });
     if (overlap) { alert("Shift overlaps with existing shift!"); return; }
 
     const newDay = [...dayShifts, { type: shiftType, time: shiftTime }];
     employeeShifts[dateStr] = newDay;
     const newShifts = { ...shifts, [empId]: employeeShifts };
-    setShifts(newShifts);
-    // mark availability for this date
-    setEmployeeAvailability(prev => ({ ...prev, [empId]: Array.from(new Set([...(prev[empId]||[]), dateStr])) }));
+
+    // Propagate this single-day assignment across equivalent dates in other trimesters
+    const baseDate = selectedShift.date;
+    const baseTrimIdx = getTrimesterIndexForDate(baseDate);
+    if (baseTrimIdx !== -1) {
+      for (let t = 0; t < trimesters.length; t++) {
+        const eqDate = getEquivalentDateInTrimester(baseDate, t);
+        if (!eqDate) continue;
+        const eqStr = eqDate.toISOString().split('T')[0];
+        const assigned = computeAssignedShiftByTrimester(shiftType, baseDate, eqDate);
+        if (!newShifts[empId]) newShifts[empId] = {};
+        newShifts[empId][eqStr] = [ { type: assigned, time: defaultShiftTimes[assigned] || { start: '', end: '' }, status: 'assigned' } ];
+      }
+    }
+
+    const normalized = normalizeShiftsMap(newShifts);
+    setShifts(normalized);
+    // mark availability for affected dates
+    setEmployeeAvailability(prev => {
+      const avail = new Set(prev[empId] || []);
+      Object.keys(newShifts[empId] || {}).forEach(d => avail.add(d));
+      return { ...prev, [empId]: Array.from(avail) };
+    });
+
     // auto-save the change
     try {
-      await saveShiftsToServer({ silent: true }, newShifts);
+      await saveShiftsToServer({ silent: true }, normalized);
     } catch (e) { console.error('Auto-save failed after addShift', e); }
   };
 
@@ -289,13 +559,11 @@ export default function ShiftSchedule() {
       if (isAvail) {
         const dayShifts = (shifts[empId] || {})[dateStr] || [];
         if (dayShifts.length > 0) {
-          // Open move modal to choose another day
-          setMoveInfo({ empId, fromDate: dateStr });
-          // default selectedMoveDate -> next available day in week (or first different day)
-          const otherDates = weekDates.map(d => d.toISOString().split('T')[0]).filter(d => d !== dateStr);
-          setSelectedMoveDate(otherDates.length ? otherDates[0] : null);
+          // Open the On Leave picker (reuse move modal design) and preselect this date
+          setMoveInfo({ empId });
+          setSelectedMoveDate(dateStr);
           setShowMoveModal(true);
-          return prev; // do not change availability yet
+          return prev; // do not change availability yet until user confirms
         }
         return { ...prev, [empId]: avail.filter(d => d !== dateStr) };
       }
@@ -304,49 +572,7 @@ export default function ShiftSchedule() {
     });
   };
 
-  const moveShiftsToDate = (empId, fromDate, toDate) => {
-    let prevSnapshot = null;
-    setShifts(prev => {
-      const empShifts = prev[empId] || {};
-      prevSnapshot = JSON.parse(JSON.stringify(empShifts));
-      const from = empShifts[fromDate] || [];
-      if (!from.length) return prev;
-      const to = empShifts[toDate] || [];
-      const updatedEmpShifts = { ...empShifts, [toDate]: [...to, ...from] };
-      delete updatedEmpShifts[fromDate];
-      return { ...prev, [empId]: updatedEmpShifts };
-    });
-
-    // update availability: remove fromDate, ensure toDate is available
-    setEmployeeAvailability(prev => {
-      const avail = new Set(prev[empId] || []);
-      avail.delete(fromDate);
-      avail.add(toDate);
-      return { ...prev, [empId]: Array.from(avail) };
-    });
-
-    setShowMoveModal(false);
-    setMoveInfo({ empId: null, fromDate: null });
-    setSelectedMoveDate(null);
-
-    // auto-save and setup undo
-    (async () => {
-      try {
-        await saveShiftsToServer({ silent: true });
-        // show undo snackbar
-        const moved = (prevSnapshot && prevSnapshot[fromDate]) ? prevSnapshot[fromDate].length : 0;
-        setUndoInfo({ empId, fromDate, toDate, prevSnapshot, moved });
-        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-        undoTimerRef.current = setTimeout(() => {
-          setUndoInfo(null);
-          undoTimerRef.current = null;
-        }, 8000);
-      } catch (err) {
-        console.error('Auto-save failed after moving shifts:', err);
-        alert('Failed to save shifts after moving. Your changes are still local.');
-      }
-    })();
-  };
+  // moveShiftsToDate removed: moving/cascading shifts is no longer supported.
 
   // Removed unused: handleMonthlyShiftAssignment
 
@@ -370,6 +596,7 @@ export default function ShiftSchedule() {
   ];
 
   const [selectedTrimester, setSelectedTrimester] = useState(0);
+  const [shiftMode, setShiftMode] = useState("tri-shift");
 
   const getTrimesterDates = (trimesterIdx) => {
     const { start, end } = trimesters[trimesterIdx];
@@ -382,52 +609,65 @@ export default function ShiftSchedule() {
     return dates;
   };
 
+
+
   const assignTrimesterShift = async (employeeId, shiftType) => {
     try {
-      const dates = getTrimesterDates(selectedTrimester);
+      // Use the first day of the selected trimester as the pivot for trimester-based rotation
+      const pivot = new Date(trimesters[selectedTrimester].start);
       const newShifts = { ...shifts };
-      dates.forEach(date => {
-        const dateStr = date.toISOString().split('T')[0];
-        if (!newShifts[employeeId]) newShifts[employeeId] = {};
-        newShifts[employeeId][dateStr] = [
-          {
-            type: shiftType,
-            time: defaultShiftTimes[shiftType],
-            status: 'assigned',
-          },
-        ];
+      // For each trimester and each date, compute months delta from pivot and assign rotated shift
+      trimesters.forEach((t, idx) => {
+        const dates = getTrimesterDates(idx);
+        dates.forEach(date => {
+          const dateStr = date.toISOString().split('T')[0];
+          const assignedShift = computeAssignedShiftByTrimester(shiftType, pivot, date);
+          if (!newShifts[employeeId]) newShifts[employeeId] = {};
+          newShifts[employeeId][dateStr] = [
+            {
+              type: assignedShift,
+              time: defaultShiftTimes[assignedShift] || { start: "", end: "" },
+              status: 'assigned',
+            },
+          ];
+        });
       });
-      setShifts(newShifts);
-      await saveShiftsToServer({ silent: false }, newShifts);
-      alert(`Assigned ${shiftType} shift for the entire trimester.`);
+
+      const normalized = normalizeShiftsMap(newShifts);
+      setShifts(normalized);
+      await saveShiftsToServer({ silent: false }, normalized);
+      alert(`Assigned trimester shifts (rotated by ${shiftMode}).`);
     } catch (error) {
       console.error('Failed to assign trimester shift:', error);
-      alert('Failed to assign trimester shift.');
+      const msg = error?.message || (error?.original?.response?.data?.message) || 'Failed to assign trimester shift.';
+      alert(msg);
     }
   };
 
   const [activeEmployee, setActiveEmployee] = useState(null);
-
+  
   const handleEmployeeClick = (employeeId) => {
-    setActiveEmployee(activeEmployee === employeeId ? null : employeeId);
+    const opening = activeEmployee !== employeeId;
+    setActiveEmployee(opening ? employeeId : null);
+    setShowEmployeeActionsModal(opening);
   };
 
   // Removed unused: handleShiftTypeSelection
 
   const [calendarView, setCalendarView] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(0);
-  // Removed unused: setCalendarYear, openCalendarView, closeCalendarView
-  const [calendarYear] = useState(new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(currentWeekStart.getMonth());
+  const [calendarYear, setCalendarYear] = useState(currentWeekStart.getFullYear());
+  // calendarViewMode removed — single month view only
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(null);
+  const calendarModalRef = React.useRef(null);
 
-  const getMonthDates = (year, month) => {
-    const date = new Date(year, month);
-    const dates = [];
-    while (date.getMonth() === month) {
-      dates.push(new Date(date));
-      date.setDate(date.getDate() + 1);
+  React.useEffect(() => {
+    if (calendarView && calendarModalRef.current) {
+      try { calendarModalRef.current.focus(); } catch (e) { /* ignore focus errors */ }
     }
-    return dates;
-  };
+  }, [calendarView]);
+
+  // getMonthDates removed — month matrix is built inline in the month-view renderer
 
   return (
     <div className="shift-page">
@@ -443,6 +683,19 @@ export default function ShiftSchedule() {
             <button onClick={prevWeek}>{"<"}</button>
             <span>Week of {weekDates[0].toLocaleDateString()} - {weekDates[4].toLocaleDateString()}</span>
             <button onClick={nextWeek}>{">"}</button>
+            <button
+              className="calendar-open-btn"
+              title="Open calendar"
+              onClick={() => {
+                setCalendarView(true);
+                setCalendarMonth(currentWeekStart.getMonth());
+                setCalendarYear(currentWeekStart.getFullYear());
+                setCalendarSelectedDate(currentWeekStart.toISOString().split('T')[0]);
+              }}
+              style={{ marginLeft: 8 }}
+            >
+              📅
+            </button>
           </div>
           <div className="trisem-select">
             <label htmlFor="trisemester">Trimester:</label>
@@ -485,7 +738,11 @@ export default function ShiftSchedule() {
                     const dateStr = date.toISOString().split('T')[0];
                     const dayShifts = shifts[emp.id]?.[dateStr] || [];
                     const totalDayHours = dayShifts.reduce((sum, s) => sum + Number(calculateShiftHours(s.time)), 0).toFixed(1);
-                    const available = employeeAvailability[emp.id]?.includes(dateStr);
+                    const isOnLeave = (employeeLeaveDays[emp.id] || []).includes(dateStr);
+                    // Show Available when there is at least one scheduled shift for the day,
+                    // otherwise fall back to availability state. If the day is marked On Leave,
+                    // treat it as Off.
+                    const available = !isOnLeave && ( (dayShifts && dayShifts.length > 0) || (employeeAvailability[emp.id] && employeeAvailability[emp.id].includes(dateStr)) );
 
                     return (
                       <td key={dateStr} onClick={() => openShiftModal(emp, date)} title={`Total: ${totalDayHours} hrs`}>
@@ -493,13 +750,17 @@ export default function ShiftSchedule() {
                           {available ? 'Available' : 'Off'}
                         </div>
                         {dayShifts.length
-                          ? dayShifts.map((s, i) => (
-                              <div key={i} className={`shift ${shiftColorClass(s.type)}`} title={`${s.type.toUpperCase()} Shift\n${s.time.start} - ${s.time.end}\n${calculateShiftHours(s.time)} hrs`}>
-                                {s.type !== "flexible" ? `${s.time.start} - ${s.time.end}` : `${s.time.start || ""} - ${s.time.end || ""}`}
-                              </div>
-                            ))
-                          : <div className="empty">+</div>
-                        }
+                                ? dayShifts.map((s, i) => (
+                                    <div key={i} className={`shift ${shiftColorClass(s.type)}`} title={`${s.type.toUpperCase()} Shift\n${s.time.start} - ${s.time.end}\n${calculateShiftHours(s.time)} hrs`}>
+                                      {s.type !== "flexible" ? `${s.time.start} - ${s.time.end}` : `${s.time.start || ""} - ${s.time.end || ""}`}
+                                    </div>
+                                  ))
+                                : (
+                                  (employeeLeaveDays[emp.id] || []).includes(dateStr)
+                                    ? <div className="on-leave">On Leave</div>
+                                    : <div className="empty">+</div>
+                                )
+                              }
                       </td>
                     );
                   })}
@@ -525,19 +786,30 @@ export default function ShiftSchedule() {
         </div>
       )}
 
-        {/* Undo snackbar */}
+        {/* Undo snackbar for On Leave removals */}
         {undoInfo && (
           <div className="undo-snackbar">
-            <div className="undo-message">Moved {undoInfo.moved} shift{undoInfo.moved !== 1 ? 's' : ''} from {undoInfo.fromDate} to {undoInfo.toDate}</div>
+            <div className="undo-message">Removed {Object.keys(undoInfo.removed || {}).reduce((acc,d) => acc + (undoInfo.removed[d]?.length||0), 0)} shift(s)</div>
             <div className="undo-actions">
               <button className="undo-btn" onClick={async () => {
-                // restore snapshot
-                setShifts(prev => ({ ...prev, [undoInfo.empId]: undoInfo.prevSnapshot }));
-                // restore availability
-                setEmployeeAvailability(prev => ({ ...prev, [undoInfo.empId]: Object.keys(undoInfo.prevSnapshot || {}) }));
+                const { empId, prevSnapshot } = undoInfo;
+                const restored = JSON.parse(JSON.stringify(prevSnapshot || {}));
+                const normalized = normalizeShiftsMap(restored);
+                setShifts(normalized);
+                setEmployeeAvailability(prev => ({ ...prev, [empId]: Object.keys(normalized[empId] || {}) }));
+                // remove leave markers for restored dates
+                setEmployeeLeaveDays(ld => {
+                  const next = { ...ld };
+                  Object.keys(undoInfo.removed || {}).forEach(d => {
+                    if (!next[empId]) return;
+                    next[empId] = next[empId].filter(x => x !== d);
+                  });
+                  if (next[empId] && next[empId].length === 0) delete next[empId];
+                  return next;
+                });
+                try { await saveShiftsToServer({ silent: true }, normalized); } catch (e) { console.error('Failed saving after undo', e); }
                 if (undoTimerRef.current) { clearTimeout(undoTimerRef.current); undoTimerRef.current = null; }
                 setUndoInfo(null);
-                try { await saveShiftsToServer({ silent: true }); } catch (e) { console.error('Failed saving after undo', e); }
               }}>Undo</button>
             </div>
           </div>
@@ -548,26 +820,15 @@ export default function ShiftSchedule() {
           <div className="modal move-modal">
             <div className="move-header">
               <div>
-                <h3 style={{ margin: 0 }}>Employee On Leave</h3>
-                <p className="muted">This employee has shifts on <strong>{moveInfo.fromDate}</strong>. Select a day to move those shifts to.</p>
-              </div>
-              <div className="move-preview">
-                <small className="muted">Shifts to move:</small>
-                <div style={{ marginTop: 6 }}>
-                  {((shifts[moveInfo.empId] || {})[moveInfo.fromDate] || []).map((s, i) => (
-                    <div key={i} className={`shift ${shiftColorClass(s.type)}`} style={{ height: 28, padding: '4px 8px', marginBottom: 6, fontSize: 12 }}>
-                      {s.type} {s.time?.start ? ` • ${s.time.start}-${s.time.end}` : ''}
-                    </div>
-                  ))}
-                </div>
+                <h3 style={{ margin: 0 }}>Mark On Leave</h3>
+                <p className="muted">Select a day in the week to mark <strong>{safeEmployees.find(e => e.id === (moveInfo.empId || activeEmployee))?.name}</strong> as On Leave. The shift on that day will be removed.</p>
               </div>
             </div>
 
             <div className="move-grid">
               {weekDates.map(d => {
                 const dStr = d.toISOString().split('T')[0];
-                if (dStr === moveInfo.fromDate) return null;
-                const existing = (shifts[moveInfo.empId] || {})[dStr] || [];
+                const existing = (shifts[moveInfo.empId || activeEmployee] || {})[dStr] || [];
                 return (
                   <div key={dStr} className={`move-card ${selectedMoveDate === dStr ? 'selected' : ''}`} onClick={() => setSelectedMoveDate(dStr)}>
                     <div className="day">{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
@@ -580,7 +841,45 @@ export default function ShiftSchedule() {
 
             <div className="modal-buttons" style={{ marginTop: 18 }}>
               <button className="btn-secondary" onClick={() => { setShowMoveModal(false); setMoveInfo({ empId: null, fromDate: null }); setSelectedMoveDate(null); }}>Cancel</button>
-              <button className="btn-primary" onClick={() => moveShiftsToDate(moveInfo.empId, moveInfo.fromDate, selectedMoveDate)} disabled={!selectedMoveDate}>Move Shifts</button>
+              <button className="btn-primary" onClick={async () => {
+                const empId = moveInfo.empId || activeEmployee;
+                if (!empId || !selectedMoveDate) return;
+                // perform mark on leave: remove shifts for that date and persist
+                const prevSnapshot = JSON.parse(JSON.stringify(shifts || {}));
+                const newShifts = JSON.parse(JSON.stringify(shifts || {}));
+                const removed = {};
+                if (newShifts[empId] && newShifts[empId][selectedMoveDate]) {
+                  removed[selectedMoveDate] = newShifts[empId][selectedMoveDate];
+                  delete newShifts[empId][selectedMoveDate];
+                  if (Object.keys(newShifts[empId]).length === 0) delete newShifts[empId];
+                }
+                // update availability
+                setEmployeeAvailability(prev => {
+                  const updated = new Set(prev[empId] || []);
+                  updated.delete(selectedMoveDate);
+                  return { ...prev, [empId]: Array.from(updated) };
+                });
+                // mark leave day
+                setEmployeeLeaveDays(ld => ({ ...ld, [empId]: Array.from(new Set([...(ld[empId] || []), selectedMoveDate])) }));
+                const normalized = normalizeShiftsMap(newShifts);
+                setShifts(normalized);
+                try {
+                  await saveShiftsToServer({ silent: true }, normalized);
+                  if (Object.keys(removed).length) {
+                    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+                    setUndoInfo({ empId, removed, prevSnapshot });
+                    undoTimerRef.current = setTimeout(() => { setUndoInfo(null); undoTimerRef.current = null; }, 8000);
+                  }
+                } catch (e) {
+                  console.error('Failed saving on-leave', e);
+                  const msg = e?.message || (e?.original?.response?.data?.message) || 'Failed to save on-leave changes';
+                  alert(msg);
+                }
+                setShowMoveModal(false);
+                setMoveInfo({ empId: null, fromDate: null });
+                setSelectedMoveDate(null);
+                setActiveEmployee(null);
+              }} disabled={!selectedMoveDate}>Mark Leave</button>
             </div>
           </div>
         </div>
@@ -605,15 +904,34 @@ export default function ShiftSchedule() {
                     } else {
                       delete employeeShifts[dateStr];
                     }
+
+                    // Also remove equivalent dates in other trimesters to keep rotation in sync
+                    const baseDate = selectedShift.date;
+                    const baseTrimIdx = getTrimesterIndexForDate(baseDate);
+                    if (baseTrimIdx !== -1) {
+                      for (let t = 0; t < trimesters.length; t++) {
+                        const eq = getEquivalentDateInTrimester(baseDate, t);
+                        if (!eq) continue;
+                        const eqStr = eq.toISOString().split('T')[0];
+                        if (employeeShifts[eqStr]) delete employeeShifts[eqStr];
+                      }
+                    }
+
                     const newShifts = { ...shifts, [empId]: employeeShifts };
-                    setShifts(newShifts);
-                    // update availability: if no shifts left on that date, remove availability
+                    const normalized = normalizeShiftsMap(newShifts);
+                    setShifts(normalized);
+                    // update availability: recalc availability from employeeShifts
                     setEmployeeAvailability(prev => {
                       const avail = new Set(prev[empId] || []);
-                      if (!employeeShifts[dateStr]) avail.delete(dateStr);
+                      // remove any dates that are no longer present
+                      Object.keys(prev[empId] || {}).forEach(d => {
+                        if (!newShifts[empId] || !newShifts[empId][d]) avail.delete(d);
+                      });
+                      // ensure availability includes remaining shifts
+                      Object.keys(newShifts[empId] || {}).forEach(d => avail.add(d));
                       return { ...prev, [empId]: Array.from(avail) };
                     });
-                    try { await saveShiftsToServer({ silent: true }, newShifts); } catch (e) { console.error('Auto-save failed after remove', e); }
+                    try { await saveShiftsToServer({ silent: true }, normalized); } catch (e) { console.error('Auto-save failed after remove', e); }
                   }}>✕</button>
                 </div>
               ))}
@@ -622,10 +940,20 @@ export default function ShiftSchedule() {
             <div className="modal-field">
               <label>Shift Type</label>
               <select value={shiftType} onChange={e => { setShiftType(e.target.value); setShiftTime(defaultShiftTimes[e.target.value]); }}>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="night">Night</option>
-                <option value="flexible">Flexible</option>
+                {(() => {
+                  const rotations = {
+                    "tri-shift": ["morning", "afternoon", "night"],
+                    "dual-shift": ["morning", "afternoon"],
+                    "single-shift": ["morning"],
+                  };
+                  const available = rotations[shiftMode] || rotations["tri-shift"];
+                  return (
+                    <>
+                      {available.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                      <option value="flexible">Flexible</option>
+                    </>
+                  );
+                })()}
               </select>
             </div>
             {(shiftType === "flexible" || shiftType === "custom") && (
@@ -653,12 +981,22 @@ export default function ShiftSchedule() {
     <div className="monthly-shift-modal">
       <div className="monthly-shift-modal-header">
         <h3>Assign Trimester Shift</h3>
-        <p>Assign a shift for <strong>{employees.find(e => e.id === activeEmployee)?.name}</strong> for the entire selected trimester. Choose a shift type below:</p>
+        <p>Assign a shift for <strong>{safeEmployees.find(e => e.id === activeEmployee)?.name}</strong> for the entire selected trimester. Choose a shift type below:</p>
       </div>
       <div className="monthly-shift-modal-options">
-        <button className="monthly-shift-modal-btn morning" onClick={() => assignTrimesterShift(activeEmployee, "morning")}>☀️ Morning Shift <span className="monthly-shift-modal-desc">06:00 - 14:00</span></button>
-        <button className="monthly-shift-modal-btn afternoon" onClick={() => assignTrimesterShift(activeEmployee, "afternoon")}>🌤️ Afternoon Shift <span className="monthly-shift-modal-desc">14:00 - 22:00</span></button>
-        <button className="monthly-shift-modal-btn night" onClick={() => assignTrimesterShift(activeEmployee, "night")}>🌙 Night Shift <span className="monthly-shift-modal-desc">22:00 - 06:00</span></button>
+        {(() => {
+          const rotations = {
+            "tri-shift": ["morning", "afternoon", "night"],
+            "dual-shift": ["morning", "afternoon"],
+            "single-shift": ["morning"],
+          };
+          const available = rotations[shiftMode] || rotations["tri-shift"];
+          return available.map(t => (
+            <button key={t} className={`monthly-shift-modal-btn ${t}`} onClick={() => assignTrimesterShift(activeEmployee, t)}>
+              {t === 'morning' ? '☀️' : t === 'afternoon' ? '🌤️' : '🌙'} {t.charAt(0).toUpperCase() + t.slice(1)} Shift <span className="monthly-shift-modal-desc">{defaultShiftTimes[t]?.start || ''} - {defaultShiftTimes[t]?.end || ''}</span>
+            </button>
+          ));
+        })()}
       </div>
       <button className="monthly-shift-modal-cancel" onClick={() => setActiveEmployee(null)}>Cancel</button>
     </div>
@@ -667,65 +1005,81 @@ export default function ShiftSchedule() {
 
       {calendarView && (
         <div className="modal-overlay">
-          <div className="calendar-modal">
+          <div className="calendar-modal" role="dialog" aria-modal="true">
             <div className="calendar-modal-header">
-              <button onClick={() => setCalendarMonth(m => m === 0 ? 11 : m - 1)}>&lt;</button>
-              <span>{new Date(calendarYear, calendarMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-              <button onClick={() => setCalendarMonth(m => m === 11 ? 0 : m + 1)}>&gt;</button>
-              <button className="calendar-close" onClick={() => setCalendarView(false)}>✕</button>
+              <div className="cal-header-left">
+                <button className="cal-arrow" aria-label="Previous month" onClick={() => {
+                  const d = new Date(calendarYear, calendarMonth - 1, 1);
+                  setCalendarYear(d.getFullYear());
+                  setCalendarMonth(d.getMonth());
+                }}>◀</button>
+              </div>
+
+              <div className="cal-header-center">
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select aria-label="Select month" value={calendarMonth} onChange={e => setCalendarMonth(Number(e.target.value))} className="cal-month-select">
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i} value={i}>{new Date(2020, i, 1).toLocaleString('default', { month: 'long' })}</option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Year"
+                    type="number"
+                    value={calendarYear}
+                    onChange={e => setCalendarYear(Number(e.target.value))}
+                    className="cal-year-input"
+                  />
+                </div>
+              </div>
+
+              <div className="cal-header-right">
+                <button className="cal-arrow" aria-label="Next month" onClick={() => {
+                  const d = new Date(calendarYear, calendarMonth + 1, 1);
+                  setCalendarYear(d.getFullYear());
+                  setCalendarMonth(d.getMonth());
+                }}>▶</button>
+                <button className="today-btn" onClick={() => { const today = new Date(); setCalendarYear(today.getFullYear()); setCalendarMonth(today.getMonth()); }}>Today</button>
+                <button className="calendar-close" aria-label="Close calendar" onClick={() => setCalendarView(false)}>✕</button>
+              </div>
             </div>
-            <table className="calendar-table">
-              <thead>
-                <tr>
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <th key={d}>{d}</th>)}
-                </tr>
-              </thead>
-              <tbody>
+
+            <div className="calendar-body">
+              <div className="calendar-weekdays" aria-hidden>
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                  <div key={d} className="calendar-weekday">{d}</div>
+                ))}
+              </div>
+
+              <div className="calendar-grid" role="grid">
                 {(() => {
-                  const dates = getMonthDates(calendarYear, calendarMonth);
-                  if (!dates.length) return null;
-                  const firstDay = dates[0] instanceof Date ? dates[0].getDay() : 0;
-                  const weeks = [];
-                  let week = Array(firstDay).fill(null);
-                  dates.forEach((date, idx) => {
-                    if (week.length === 7) { weeks.push(week); week = []; }
-                    week.push(date instanceof Date ? date : null);
-                    if (idx === dates.length - 1) {
-                      while (week.length < 7) week.push(null);
-                      weeks.push(week);
-                    }
+                  // Build month matrix (5-6 rows of 7)
+                  const firstOfMonth = new Date(calendarYear, calendarMonth, 1);
+                  const startOffset = firstOfMonth.getDay(); // 0-6 (Sun..Sat)
+                  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+                  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+                  const cells = Array.from({ length: totalCells }, (_, idx) => {
+                    const dayNum = idx - startOffset + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth) return null;
+                    return new Date(calendarYear, calendarMonth, dayNum);
                   });
-                  return weeks.map((week, i) => (
-                    <tr key={i}>
-                      {week.map((date, j) => (
-                        <td key={j} className={date instanceof Date ? "calendar-day" : "calendar-empty"}>
-                          {date instanceof Date && (
-                            <>
-                              <div>{date.getDate()}</div>
-                              <div className="calendar-shifts">
-                                {employees.map(emp => {
-                                  const dateStr = date.toISOString().split('T')[0];
-                                  const empShifts = shifts[emp.id]?.[dateStr] || [];
-                                  return empShifts.map((s, idx) => (
-                                    <span
-                                      key={emp.id + s.type + idx}
-                                      className={`calendar-shift-dot ${s.type}`}
-                                      title={`${emp.name}: ${s.type.charAt(0).toUpperCase() + s.type.slice(1)} (${s.time.start}-${s.time.end})`}
-                                    >
-                                      &bull;
-                                    </span>
-                                  ));
-                                })}
-                              </div>
-                            </>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ));
+
+                  return cells.map((date, idx) => {
+                    if (!date) return <div key={idx} className="calendar-empty-grid" />;
+                    const dateStr = date.toISOString().split('T')[0];
+                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                    const isSelected = calendarSelectedDate === dateStr;
+                    // Simplified date-only cell (no employee/event listings)
+                    return (
+                      <div key={idx} role="gridcell" className={`calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected-date' : ''}`} onClick={() => { setCalendarSelectedDate(dateStr); const monday = getWeekStartMonday(date); setCurrentWeekStart(monday); setCalendarView(false); }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <div className="date-num">{date.getDate()}</div>
+                        </div>
+                      </div>
+                    );
+                  });
                 })()}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
